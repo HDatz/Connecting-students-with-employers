@@ -1,0 +1,203 @@
+package com.example.dai_nam.service;
+
+import com.example.dai_nam.model.*;
+import com.example.dai_nam.repository.*;
+import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.stereotype.Service;
+
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class NhaTuyenDungService {
+
+    @Autowired
+    private NhaTuyenDungRepository nhaTuyenDungRepository;
+
+    @Autowired
+    private BaiDangTuyenDungRepository baiDangTuyenDungRepository;
+
+    @Autowired
+    private DonUngTuyenRepository donUngTuyenRepository;
+
+    @Autowired
+    private ThongBaoService thongbaoService;
+
+    @Autowired
+    private QuanTriVienRepository quanTriVienRepository;
+    
+    @Autowired
+    private BaiVietHuongNghiepRepository baiVietHuongNghiepRepository;
+
+    @Autowired
+    private JavaMailSender mailSender; // Gửi email thông báo
+
+    // Lấy danh sách ứng viên của một bài đăng tuyển dụng
+    public List<DonUngTuyen> getUngVienByBaiDang(int baiDangId) {
+        return donUngTuyenRepository.findByBaiDangTuyenDung_IdBaiDang(baiDangId);
+    }
+    
+    public Optional<NhaTuyenDung> findByEmail(String email) {
+        return nhaTuyenDungRepository.findByEmail(email);
+    }
+
+    // ✅ 1. Cập nhật thông tin nhà tuyển dụng (chỉ sửa tài khoản của mình)
+    @Transactional
+    public NhaTuyenDung updateNhaTuyenDung(Integer idNguoiCapNhat, Integer idNhaTuyenDung,
+            NhaTuyenDung updatedNhaTuyenDung) {
+        Optional<NhaTuyenDung> optionalNhaTuyenDung = nhaTuyenDungRepository.findById(idNhaTuyenDung);
+        if (optionalNhaTuyenDung.isPresent()) {
+            NhaTuyenDung existingNhaTuyenDung = optionalNhaTuyenDung.get();
+
+            // Chỉ admin hoặc chính nhà tuyển dụng mới được quyền chỉnh sửa
+            boolean isAdmin = quanTriVienRepository.existsById(idNguoiCapNhat);
+            boolean isOwner = Integer.valueOf(existingNhaTuyenDung.getIdNhaTuyenDung()).equals(idNguoiCapNhat);
+
+            if (!isAdmin && !isOwner) {
+                throw new IllegalArgumentException("Bạn không có quyền chỉnh sửa thông tin này.");
+            }
+
+            existingNhaTuyenDung.setTenCongTy(updatedNhaTuyenDung.getTenCongTy());
+            existingNhaTuyenDung.setEmail(updatedNhaTuyenDung.getEmail());
+            existingNhaTuyenDung.setMoTaCongTy(updatedNhaTuyenDung.getMoTaCongTy());
+            existingNhaTuyenDung.setDiaChi(updatedNhaTuyenDung.getDiaChi());
+            existingNhaTuyenDung.setTrangWeb(updatedNhaTuyenDung.getTrangWeb());
+
+            return nhaTuyenDungRepository.save(existingNhaTuyenDung);
+        }
+        throw new IllegalArgumentException("Nhà tuyển dụng không tồn tại.");
+    }
+
+    // 2. Nhà tuyển dụng tạo bài đăng tuyển dụng (Chờ duyệt)
+    public BaiDangTuyenDung createBaiTuyenDung(BaiDangTuyenDung baiTuyenDung, int idNhaTuyenDung) {
+        Optional<NhaTuyenDung> nhaTuyenDungOpt = nhaTuyenDungRepository.findById(idNhaTuyenDung);
+        if (nhaTuyenDungOpt.isEmpty()) {
+            throw new IllegalArgumentException("Nhà tuyển dụng không tồn tại!");
+        }
+
+        baiTuyenDung.setNhaTuyenDung(nhaTuyenDungOpt.get()); // ✅ Gán thông tin đầy đủ
+        baiTuyenDung.setNgayDang(new Timestamp(System.currentTimeMillis())); // ✅ Thêm ngày đăng
+        baiTuyenDung.setTrangThai(BaiDangTuyenDung.TrangThaiBaiDang.CHO_DUYET); // ✅ Mặc định trạng thái
+
+        return baiDangTuyenDungRepository.save(baiTuyenDung);
+    }
+
+
+    // 3. Nhà tuyển dụng cập nhật bài đăng tuyển dụng
+    public BaiDangTuyenDung updateBaiDangTuyenDung(int idBaiDang, int idNguoiCapNhat, BaiDangTuyenDung updatedBaiDang) {
+        Optional<BaiDangTuyenDung> optionalBaiDang = baiDangTuyenDungRepository.findById(idBaiDang);
+        if (optionalBaiDang.isEmpty()) {
+            throw new IllegalArgumentException("Không tìm thấy bài đăng tuyển dụng!");
+        }
+
+        BaiDangTuyenDung baiDang = optionalBaiDang.get();
+        boolean isAdmin = quanTriVienRepository.existsById(idNguoiCapNhat);
+        boolean isOwner = baiDang.getNhaTuyenDung().getIdNhaTuyenDung().equals(idNguoiCapNhat);
+
+        if (!isAdmin && !isOwner) {
+            throw new IllegalArgumentException("Bạn không có quyền chỉnh sửa bài đăng này!");
+        }
+
+        baiDang.setTieuDe(updatedBaiDang.getTieuDe());
+        baiDang.setMoTa(updatedBaiDang.getMoTa());
+        baiDang.setYeuCau(updatedBaiDang.getYeuCau());
+        baiDang.setMucLuong(updatedBaiDang.getMucLuong());
+        baiDang.setDiaDiem(updatedBaiDang.getDiaDiem());
+
+        return baiDangTuyenDungRepository.save(baiDang);
+    }
+
+
+    // 4. Xóa bài đăng tuyển dụng
+    @Transactional
+    public void deleteBaiDangTuyenDung(int idBaiDang, int idNguoiXoa) {
+        Optional<BaiDangTuyenDung> optionalBaiDang = baiDangTuyenDungRepository.findById(idBaiDang);
+
+        if (optionalBaiDang.isPresent()) {
+            BaiDangTuyenDung baiDang = optionalBaiDang.get();
+
+            boolean isAdmin = quanTriVienRepository.existsById(idNguoiXoa);
+            boolean isOwner = baiDang.getNhaTuyenDung().getIdNhaTuyenDung().equals(idNguoiXoa);
+
+            if (!isAdmin && !isOwner) {
+                throw new IllegalArgumentException("Bạn không có quyền xóa bài đăng này!");
+            }
+
+            baiDangTuyenDungRepository.deleteById(idBaiDang);
+        } else {
+            throw new IllegalArgumentException("Không tìm thấy bài đăng tuyển dụng!");
+        }
+    }
+
+
+    // 5. Nhà tuyển dụng xem danh sách bài đăng của mình
+    public List<BaiDangTuyenDung> getAllBaiDangTuyenDungByNhaTuyenDung(int nhaTuyenDungId) {
+        return baiDangTuyenDungRepository.findByNhaTuyenDung_IdNhaTuyenDung(nhaTuyenDungId);
+    }
+
+    // 6. Nhà tuyển dụng duyệt ứng viên (Chấp nhận / Từ chối)
+ 
+    @Transactional
+    public void xuLyUngVien(int ungTuyenId, int idNhaTuyenDung, boolean chapNhan) {
+    	
+    	DonUngTuyen ungTuyen = donUngTuyenRepository.findById(ungTuyenId)
+    		    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn ứng tuyển!"));
+        BaiDangTuyenDung baiDang = ungTuyen.getBaiDangTuyenDung();
+
+        // ✅ Kiểm tra xem người duyệt có phải chủ bài đăng không
+        if (baiDang.getNhaTuyenDung().getIdNhaTuyenDung() != idNhaTuyenDung) {
+            throw new IllegalArgumentException("Bạn không có quyền duyệt ứng viên này!");
+        }
+
+        SinhVien sinhVien = ungTuyen.getSinhVien();
+
+        if (chapNhan) {
+            ungTuyen.setTrangThai("Đã chấp nhận");
+            sendEmail(sinhVien.getEmail(), "Chúc mừng! Bạn đã được nhà tuyển dụng chấp nhận.",
+                    "Bạn đã được chấp nhận vào vị trí: " + baiDang.getTieuDe());
+        } else {
+            ungTuyen.setTrangThai("Đã từ chối");
+            sendEmail(sinhVien.getEmail(), "Rất tiếc! Bạn đã bị từ chối.",
+                    "Nhà tuyển dụng đã từ chối đơn ứng tuyển của bạn.");
+        }
+
+        donUngTuyenRepository.save(ungTuyen);
+    }
+
+
+    // 7. Thông báo đến nhà tuyển dụng khi có ứng viên ứng tuyển
+    public void notifyNhaTuyenDung(int nhaTuyenDungId, String message) {
+        ThongBao thongbao = new ThongBao();
+        thongbao.setIdNguoiNhan(nhaTuyenDungId);
+        thongbao.setLoaiNguoiNhan(ThongBao.LoaiNguoiNhan.NHA_TUYEN_DUNG);
+		LocalDateTime now = Instant.ofEpochMilli(System.currentTimeMillis()).atZone(ZoneId.systemDefault())
+				.toLocalDateTime();
+		thongbao.setNgayGui(now);
+        thongbao.setNoiDung(message);
+        thongbaoService.createThongBao(thongbao);
+    }
+
+    // ✅ 8. Gửi email thông báo
+    private void sendEmail(String email, String subject, String content) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject(subject);
+        message.setText(content);
+        mailSender.send(message);
+    }
+    
+    public NhaTuyenDung getById(Integer id) {
+        return nhaTuyenDungRepository.findById(id).orElse(null);
+    }
+
+    public BaiVietHuongNghiep getBaiVietById(Integer id) {
+        return baiVietHuongNghiepRepository.findById(id).orElse(null);
+    }
+}
