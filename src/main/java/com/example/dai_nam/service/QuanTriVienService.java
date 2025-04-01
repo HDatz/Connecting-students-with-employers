@@ -6,8 +6,12 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.security.core.Authentication;
+
 
 import java.util.List;
 import java.util.Optional;
@@ -210,11 +214,34 @@ public class QuanTriVienService {
     
 // --------------------------- 
     // # Quản lý bài viết hướng nghiệp: Thêm bài viết mới
-    @Transactional
-    public BaiVietHuongNghiep addBaiViet(BaiVietHuongNghiep baiViet) {
-        return baiVietHuongNghiepRepository.save(baiViet);
+    
+    public List<BaiVietHuongNghiep> getAllBaiViet() {
+        return baiVietHuongNghiepRepository.findAll();
     }
     
+    @Transactional
+    public BaiVietHuongNghiep addBaiViet(BaiVietHuongNghiep baiViet) {
+        // 🛑 Kiểm tra người dùng có đăng nhập không
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal().equals("anonymousUser")) {
+            throw new IllegalArgumentException("Người dùng chưa đăng nhập!");
+        }
+
+        // ✅ Lấy thông tin người dùng từ SecurityContextHolder
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        String email = userDetails.getUsername(); // Email người đăng nhập
+
+        // ✅ Tìm kiếm QuanTriVien theo email
+        QuanTriVien quanTriVien = quanTriVienRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Tác giả không hợp lệ!"));
+
+        // ✅ Gán tác giả cho bài viết
+        baiViet.setTacGia(quanTriVien);
+
+        // ✅ Lưu bài viết vào database
+        return baiVietHuongNghiepRepository.save(baiViet);
+    }
+
     
     //cập nhật bài viết hướng nghiệp 
     @Transactional

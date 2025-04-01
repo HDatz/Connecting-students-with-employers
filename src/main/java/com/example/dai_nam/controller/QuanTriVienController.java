@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.List;
+import org.springframework.http.HttpStatus;
 
 
 import java.util.Date;
@@ -32,6 +33,8 @@ public class QuanTriVienController {
 
     @Autowired
     private QuanTriVienService quanTriVienService;
+    
+
     
 
     // ========================== Sinh Viên ==========================
@@ -292,10 +295,21 @@ public class QuanTriVienController {
     }
 
     // ========================== Bài Viết ==========================
+    
+    @GetMapping("/BaiViet")
+    public ResponseEntity<List<BaiVietHuongNghiep>> getAllBaiViet() {
+        return ResponseEntity.ok(quanTriVienService.getAllBaiViet());
+    }
 
+    
     @PostMapping("/BaiViet")
     public ResponseEntity<BaiVietHuongNghiep> addBaiViet(@RequestBody BaiVietHuongNghiep baiViet) {
-        return ResponseEntity.ok(quanTriVienService.addBaiViet(baiViet));
+    	try {
+            BaiVietHuongNghiep newBaiViet = quanTriVienService.addBaiViet(baiViet);
+            return ResponseEntity.ok(newBaiViet);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        }
     }
 
     @PutMapping("/BaiViet/{id}")

@@ -26,7 +26,7 @@ public class BaiVietHuongNghiep {
     private String noiDung;
 
     @ManyToOne
-    @JoinColumn(name = "id_tac_gia", referencedColumnName = "id_quan_tri", nullable = true)
+    @JoinColumn(name = "id_tac_gia", referencedColumnName = "id_quan_tri", nullable = false)
     private QuanTriVien tacGia;
 
     @Column(name = "ngay_dang", nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
