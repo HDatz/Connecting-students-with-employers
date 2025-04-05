@@ -31,11 +31,22 @@ public class SinhVienService {
 
     @Autowired
     private ThongBaoService thongBaoService;
+    
+    @Autowired
+    private NhaTuyenDungRepository nhaTuyenDungRepository;
 
 
     @Autowired
     private JavaMailSender mailSender;
-
+    
+    public List<NhaTuyenDung> getAllNhaTuyenDung() {
+        return nhaTuyenDungRepository.findAll();
+    }
+    
+	public NhaTuyenDung getNhaTuyenDungById(Integer id) {
+		return nhaTuyenDungRepository.findById(id).orElse(null);
+	}
+    
     // 1. Lấy danh sách tất cả bài tuyển dụng
     public List<BaiDangTuyenDung> getAllBaiDangTuyenDung() {
         return baiDangTuyenDungRepository.findAll();

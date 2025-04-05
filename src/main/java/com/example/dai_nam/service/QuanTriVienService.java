@@ -104,6 +104,8 @@ public class QuanTriVienService {
         if (nhaTuyenDung.getMatKhau() != null && !nhaTuyenDung.getMatKhau().isEmpty()) {
             existingNhaTuyenDung.setMatKhau(bCryptPasswordEncoder.encode(nhaTuyenDung.getMatKhau()));
         }
+        if(nhaTuyenDung.getAvatar() != null && !nhaTuyenDung.getAvatar().isEmpty()) {
+        	existingNhaTuyenDung.setAvatar(nhaTuyenDung.getAvatar());        }
 
         return nhaTuyenDungRepository.save(existingNhaTuyenDung);
     }
@@ -162,6 +164,9 @@ public class QuanTriVienService {
         if (sinhVien.getMatKhau() != null && !sinhVien.getMatKhau().isEmpty()) {
             existingSinhVien.setMatKhau(bCryptPasswordEncoder.encode(sinhVien.getMatKhau()));
         }
+        
+        if(sinhVien.getAvatar() != null && !sinhVien.getAvatar().isEmpty()) {
+        	existingSinhVien.setAvatar(sinhVien.getAvatar());        } 
 
         return sinhVienRepository.save(existingSinhVien);
     }
@@ -221,24 +226,24 @@ public class QuanTriVienService {
     
     @Transactional
     public BaiVietHuongNghiep addBaiViet(BaiVietHuongNghiep baiViet) {
-        // 🛑 Kiểm tra người dùng có đăng nhập không
+        // Kiểm tra người dùng có đăng nhập không
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal().equals("anonymousUser")) {
             throw new IllegalArgumentException("Người dùng chưa đăng nhập!");
         }
 
-        // ✅ Lấy thông tin người dùng từ SecurityContextHolder
+        // Lấy thông tin người dùng từ SecurityContextHolder
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         String email = userDetails.getUsername(); // Email người đăng nhập
 
-        // ✅ Tìm kiếm QuanTriVien theo email
+        // Tìm kiếm QuanTriVien theo email
         QuanTriVien quanTriVien = quanTriVienRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Tác giả không hợp lệ!"));
 
-        // ✅ Gán tác giả cho bài viết
+        // Gán tác giả cho bài viết
         baiViet.setTacGia(quanTriVien);
 
-        // ✅ Lưu bài viết vào database
+        // Lưu bài viết vào database
         return baiVietHuongNghiepRepository.save(baiViet);
     }
 
@@ -301,7 +306,7 @@ public class QuanTriVienService {
             existingBaiDang.setMucLuong(updatedBaiDangTuyenDung.getMucLuong());
             existingBaiDang.setDiaDiem(updatedBaiDangTuyenDung.getDiaDiem());
 
-            // ✅ Khi nhà tuyển dụng sửa bài đăng, chuyển về trạng thái "CHỜ DUYỆT"
+            // Khi nhà tuyển dụng sửa bài đăng, chuyển về trạng thái "CHỜ DUYỆT"
             existingBaiDang.setTrangThai(BaiDangTuyenDung.TrangThaiBaiDang.CHO_DUYET);
 
             return baiDangTuyenDungRepository.save(existingBaiDang);
@@ -396,6 +401,24 @@ public class QuanTriVienService {
                 "Admin đã phản hồi bình luận của bạn: \"" + noiDung + "\"");
 
         return savedPhanHoi;
+    }
+    
+    //------------------------------------
+    
+    public long getTotalSinhVien() {
+    	return sinhVienRepository.count();
+    }
+    public long getTotalNhaTuyenDung() {
+    	return nhaTuyenDungRepository.count();
+    }
+    public long getTotalBinhLuan() {
+    	return binhLuanRepository.count();
+    }
+    public long getTotalBaiVietHuongNghiep() {
+    	return baiVietHuongNghiepRepository.count();
+    }
+    public long getTotalBaiTuyenDung() {
+    	return baiDangTuyenDungRepository.count();
     }
 
 }

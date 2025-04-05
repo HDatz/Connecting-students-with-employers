@@ -20,10 +20,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 
 
 import java.util.Date;
+import java.util.HashMap;
 import java.text.ParseException;
 
 @CrossOrigin(origins = "http://127.0.0.1:5500")
@@ -196,7 +199,7 @@ public class QuanTriVienController {
 
             if (avatar != null && !avatar.isEmpty()) {
                 String fileName = "nhatuyendung_" + email + "_" + avatar.getOriginalFilename();
-                Path filePath = Paths.get("uploads/avatars/" + fileName);
+                Path filePath = Paths.get("uploads/company_logos/" + fileName);
                 Files.createDirectories(filePath.getParent());
                 Files.write(filePath, avatar.getBytes());
                 nhaTuyenDung.setAvatar(fileName);
@@ -247,7 +250,7 @@ public class QuanTriVienController {
             if (avatar != null && !avatar.isEmpty()) {
                 // Nếu có ảnh cũ, xóa ảnh cũ trước
                 if (nhaTuyenDung.getAvatar() != null && !nhaTuyenDung.getAvatar().isEmpty()) {
-                    Path oldAvatarPath = Paths.get("uploads/company_logos/" + nhaTuyenDung.getAvatar());
+                    Path oldAvatarPath = Paths.get("uploads/conpany_logos/" + nhaTuyenDung.getAvatar());
                     try {
                         Files.deleteIfExists(oldAvatarPath);  // Xóa ảnh cũ trên server
                     } catch (IOException e) {
@@ -368,6 +371,7 @@ public class QuanTriVienController {
             Path filePath = Paths.get("uploads/avatars/").resolve(fileName).normalize();
             Resource resource = new UrlResource(filePath.toUri());
 
+       
             if (!resource.exists() || !resource.isReadable()) {
                 return ResponseEntity.notFound().build();
             }
@@ -384,5 +388,46 @@ public class QuanTriVienController {
         } catch (Exception e) {
             return ResponseEntity.status(403).body(null);
         }
+    }
+    
+    @GetMapping("/company_logos/{fileName}")
+    public ResponseEntity<Resource> getCompanyLogo(@PathVariable String fileName) {
+        try {
+            Path filePath = Paths.get("uploads/company_logos/").resolve(fileName).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+
+            // Kiểm tra xem ảnh có tồn tại và có thể đọc được không
+            if (!resource.exists() || !resource.isReadable()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Xác định loại nội dung của tệp
+            String contentType = Files.probeContentType(filePath);
+            if (contentType == null) {
+                contentType = "application/octet-stream"; // Nếu không xác định được
+            }
+
+            // Trả về ảnh với đúng kiểu nội dung
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
+                    .body(resource);
+        } catch (Exception e) {
+            return ResponseEntity.status(403).body(null);
+        }
+    }
+
+    
+    // ========================== Biểu Đồ ==========================
+    @GetMapping("/dashboard")
+    public ResponseEntity<Map<String, Long>> getDashboardStats() {
+        Map<String, Long> stats = new HashMap<>();
+        stats.put("totalSinhVien", quanTriVienService.getTotalSinhVien());
+        stats.put("totalNhaTuyenDung", quanTriVienService.getTotalNhaTuyenDung());
+        stats.put("totalBinhLuan", quanTriVienService.getTotalBinhLuan());
+        stats.put("totalBaiVietHuongNghiep", quanTriVienService.getTotalBaiVietHuongNghiep());
+        stats.put("totalBaiTuyenDung", quanTriVienService.getTotalBaiTuyenDung());
+        
+        return ResponseEntity.ok(stats);
     }
 }

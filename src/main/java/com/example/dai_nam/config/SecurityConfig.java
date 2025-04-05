@@ -39,6 +39,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers("/api/QuanTriVien/avatars/**").permitAll()
+                .requestMatchers("/api/QuanTriVien/company_logos/**").permitAll()
+                .requestMatchers("/api/SinhVien/NhaTuyenDung/**").permitAll()
+                .requestMatchers("/api/SinhVien/company_logos/**").permitAll()
                 .requestMatchers("/api/QuanTriVien/**").hasAuthority("ROLE_QUANTRIVIEN")
                 .requestMatchers("/api/nha-tuyen-dung/**").hasAuthority("ROLE_NHATUYENDUNG")
                 .anyRequest().authenticated()
