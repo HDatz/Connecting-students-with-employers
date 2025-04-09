@@ -47,11 +47,12 @@ public class SinhVienService {
 		return nhaTuyenDungRepository.findById(id).orElse(null);
 	}
     
+	
     // 1. Lấy danh sách tất cả bài tuyển dụng
     public List<BaiDangTuyenDung> getAllBaiDangTuyenDung() {
         return baiDangTuyenDungRepository.findAll();
     }
-    
+    //Tìm Kiếm Sinh viên theo mail
     public Optional<SinhVien> findByEmail(String email) {
         return sinhVienRepository.findByEmail(email);
     }

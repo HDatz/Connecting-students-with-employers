@@ -16,6 +16,7 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 
+import com.example.dai_nam.model.BaiVietHuongNghiep;
 import com.example.dai_nam.model.NhaTuyenDung;
 import com.example.dai_nam.service.SinhVienService;
 
@@ -30,6 +31,11 @@ public class SinhVienController {
     @GetMapping("/NhaTuyenDung")
     public ResponseEntity<List<NhaTuyenDung>> getAllNhaTuyenDung() {
         return ResponseEntity.ok(sinhVienService.getAllNhaTuyenDung());
+    }
+    
+    @GetMapping("/BaiVietHuongNghiep")
+    public ResponseEntity<List<BaiVietHuongNghiep>> getAllBaiVietHuongNghiep(){
+    	return ResponseEntity.ok(sinhVienService.getAllBaiVietHuongNghiep());
     }
     
     @GetMapping("/company_logos/{filename}")
