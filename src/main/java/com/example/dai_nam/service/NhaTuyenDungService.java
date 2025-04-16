@@ -6,6 +6,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
@@ -17,7 +18,10 @@ import java.util.Optional;
 
 @Service
 public class NhaTuyenDungService {
-
+	
+	@Autowired
+	private SinhVienRepository sinhVienRepository;
+	
     @Autowired
     private NhaTuyenDungRepository nhaTuyenDungRepository;
 
@@ -38,6 +42,9 @@ public class NhaTuyenDungService {
 
     @Autowired
     private JavaMailSender mailSender; // Gửi email thông báo
+    
+    @Autowired
+    private BCryptPasswordEncoder bCryptPasswordEncoder;
 
     // Lấy danh sách ứng viên của một bài đăng tuyển dụng
     public List<DonUngTuyen> getUngVienByBaiDang(int baiDangId) {
@@ -51,29 +58,56 @@ public class NhaTuyenDungService {
     // ✅ 1. Cập nhật thông tin nhà tuyển dụng (chỉ sửa tài khoản của mình)
     @Transactional
     public NhaTuyenDung updateNhaTuyenDung(Integer idNguoiCapNhat, Integer idNhaTuyenDung,
-            NhaTuyenDung updatedNhaTuyenDung) {
+                                           NhaTuyenDung updatedNhaTuyenDung) {
         Optional<NhaTuyenDung> optionalNhaTuyenDung = nhaTuyenDungRepository.findById(idNhaTuyenDung);
-        if (optionalNhaTuyenDung.isPresent()) {
-            NhaTuyenDung existingNhaTuyenDung = optionalNhaTuyenDung.get();
+        if (optionalNhaTuyenDung.isEmpty()) {
+            throw new IllegalArgumentException("Nhà tuyển dụng không tồn tại.");
+        }
 
-            // Chỉ admin hoặc chính nhà tuyển dụng mới được quyền chỉnh sửa
-            boolean isAdmin = quanTriVienRepository.existsById(idNguoiCapNhat);
-            boolean isOwner = Integer.valueOf(existingNhaTuyenDung.getIdNhaTuyenDung()).equals(idNguoiCapNhat);
+        NhaTuyenDung existingNhaTuyenDung = optionalNhaTuyenDung.get();
 
-            if (!isAdmin && !isOwner) {
-                throw new IllegalArgumentException("Bạn không có quyền chỉnh sửa thông tin này.");
+        // Kiểm tra quyền
+        boolean isAdmin = quanTriVienRepository.existsById(idNguoiCapNhat);
+        boolean isOwner = existingNhaTuyenDung.getIdNhaTuyenDung().equals(idNguoiCapNhat);
+
+        if (!isAdmin && !isOwner) {
+            throw new IllegalArgumentException("Bạn không có quyền chỉnh sửa thông tin này.");
+        }
+
+        // Cập nhật mật khẩu nếu có
+        String newPassword = updatedNhaTuyenDung.getMatKhau();
+        if (newPassword != null && !newPassword.isEmpty()) {
+            existingNhaTuyenDung.setMatKhau(bCryptPasswordEncoder.encode(newPassword));
+        }
+
+        // Kiểm tra và cập nhật email nếu thay đổi
+        String newEmail = updatedNhaTuyenDung.getEmail();
+        if (newEmail != null && !newEmail.equals(existingNhaTuyenDung.getEmail())) {
+
+            if (nhaTuyenDungRepository.existsByEmail(newEmail)) {
+                throw new IllegalArgumentException("Email đã tồn tại trong danh sách nhà tuyển dụng.");
             }
 
-            existingNhaTuyenDung.setTenCongTy(updatedNhaTuyenDung.getTenCongTy());
-            existingNhaTuyenDung.setEmail(updatedNhaTuyenDung.getEmail());
-            existingNhaTuyenDung.setMoTaCongTy(updatedNhaTuyenDung.getMoTaCongTy());
-            existingNhaTuyenDung.setDiaChi(updatedNhaTuyenDung.getDiaChi());
-            existingNhaTuyenDung.setTrangWeb(updatedNhaTuyenDung.getTrangWeb());
+            if (sinhVienRepository.existsByEmail(newEmail)) {
+                throw new IllegalArgumentException("Email đã tồn tại trong danh sách sinh viên.");
+            }
 
-            return nhaTuyenDungRepository.save(existingNhaTuyenDung);
+            if (quanTriVienRepository.existsByEmail(newEmail)) {
+                throw new IllegalArgumentException("Email đã tồn tại trong danh sách quản trị viên.");
+            }
+
+            existingNhaTuyenDung.setEmail(newEmail);
         }
-        throw new IllegalArgumentException("Nhà tuyển dụng không tồn tại.");
+
+        // Cập nhật các trường còn lại
+        existingNhaTuyenDung.setTenCongTy(updatedNhaTuyenDung.getTenCongTy());
+        existingNhaTuyenDung.setMoTaCongTy(updatedNhaTuyenDung.getMoTaCongTy());
+        existingNhaTuyenDung.setDiaChi(updatedNhaTuyenDung.getDiaChi());
+        existingNhaTuyenDung.setTrangWeb(updatedNhaTuyenDung.getTrangWeb());
+
+        return nhaTuyenDungRepository.save(existingNhaTuyenDung);
     }
+
 
     // 2. Nhà tuyển dụng tạo bài đăng tuyển dụng (Chờ duyệt)
     public BaiDangTuyenDung createBaiTuyenDung(BaiDangTuyenDung baiTuyenDung, int idNhaTuyenDung) {

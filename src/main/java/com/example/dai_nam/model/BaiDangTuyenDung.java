@@ -63,6 +63,9 @@ public class BaiDangTuyenDung {
         DA_DUYET,
         TU_CHOI
     }
+    
+    @Column(name = "banner", length = 255)
+    private String banner;
 
     @OneToMany(mappedBy = "baiDangTuyenDung", cascade = CascadeType.ALL)
     private List<DonUngTuyen> donUngTuyens;

@@ -3,6 +3,7 @@ package com.example.dai_nam.model;
 public class LoginRequest {
     private String email;
     private String password;
+    private String userType;
 
     public LoginRequest() {}
 
@@ -26,4 +27,12 @@ public class LoginRequest {
     public void setPassword(String password) {
         this.password = password;
     }
+
+	public String getUserType() {
+		return userType;
+	}
+
+	public void setUserType(String userType) {
+		this.userType = userType;
+	}
 }
