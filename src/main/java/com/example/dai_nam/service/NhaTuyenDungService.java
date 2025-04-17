@@ -115,7 +115,8 @@ public class NhaTuyenDungService {
         if (nhaTuyenDungOpt.isEmpty()) {
             throw new IllegalArgumentException("Nhà tuyển dụng không tồn tại!");
         }
-
+        
+        baiTuyenDung.setBanner(null);
         baiTuyenDung.setNhaTuyenDung(nhaTuyenDungOpt.get()); // ✅ Gán thông tin đầy đủ
         baiTuyenDung.setNgayDang(new Timestamp(System.currentTimeMillis())); // ✅ Thêm ngày đăng
         baiTuyenDung.setTrangThai(BaiDangTuyenDung.TrangThaiBaiDang.CHO_DUYET); // ✅ Mặc định trạng thái
