@@ -1,6 +1,7 @@
 package com.example.dai_nam.controller;
 
 import com.example.dai_nam.model.*;
+import com.example.dai_nam.model.BaiDangTuyenDung.TrangThaiBaiDang;
 import com.example.dai_nam.service.QuanTriVienService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -328,24 +329,93 @@ public class QuanTriVienController {
 
     
     // ========================== Bài Đăng ==========================
+    @GetMapping("/BaiDang/danhsach")
+    public ResponseEntity<List<Map<String, Object>>> getListBaiDang() {
+        List<BaiDangTuyenDung> list = quanTriVienService.getAllBaiDang();
 
-    @PutMapping("/BaiDang/{id}/approve")
-    public ResponseEntity<?> approveBaiDang(@PathVariable Integer id) {
-        quanTriVienService.approveBaiDangTuyenDung(id);
+        // Chuyển mỗi bài đăng thành 1 Map chứa đầy đủ thông tin + tên nhà tuyển dụng
+        List<Map<String, Object>> response = list.stream().map(baiDang -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("idBaiDang", baiDang.getIdBaiDang());
+            map.put("tieuDe", baiDang.getTieuDe());
+            map.put("moTa", baiDang.getMoTa());
+            map.put("diaDiem", baiDang.getDiaDiem());
+            map.put("loaiCongViec", baiDang.getLoaiCongViec());
+            map.put("mucLuong", baiDang.getMucLuong());
+            map.put("yeuCau", baiDang.getYeuCau());
+            map.put("ngayDang", baiDang.getNgayDang());
+            map.put("hanNop", baiDang.getHanNop());
+            map.put("trangThai", baiDang.getTrangThai());
+            map.put("soLuongTuyen", baiDang.getSoLuongTuyen());
+            map.put("banner", baiDang.getBanner());
+
+            if (baiDang.getNhaTuyenDung() != null) {
+                map.put("tenCongTy", baiDang.getNhaTuyenDung().getTenCongTy());
+            } else {
+                map.put("tenCongTy", "Không rõ");
+            }
+
+            return map;
+        }).toList();
+
+        return ResponseEntity.ok(response);
+    }
+    
+  //---------- Lấy Danh Sách Các Bài Đăng Chưa Duyệt --------------------//
+    @GetMapping("/BaiDang/choduyet")
+    public ResponseEntity<List<Map<String, Object>>> getBaiDangChoDuyet() {
+        List<BaiDangTuyenDung> list = quanTriVienService.getBaiDangByTrangThai(TrangThaiBaiDang.CHO_DUYET);
+
+        // Chuyển mỗi bài đăng thành 1 Map chứa đầy đủ thông tin + tên nhà tuyển dụng
+        List<Map<String, Object>> response = list.stream().map(baiDang -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("idBaiDang", baiDang.getIdBaiDang());
+            map.put("tieuDe", baiDang.getTieuDe());
+            map.put("moTa", baiDang.getMoTa());
+            map.put("diaDiem", baiDang.getDiaDiem());
+            map.put("loaiCongViec", baiDang.getLoaiCongViec());
+            map.put("mucLuong", baiDang.getMucLuong());
+            map.put("yeuCau", baiDang.getYeuCau());
+            map.put("ngayDang", baiDang.getNgayDang());
+            map.put("hanNop", baiDang.getHanNop());
+            map.put("trangThai", baiDang.getTrangThai());
+            map.put("soLuongTuyen", baiDang.getSoLuongTuyen());
+            map.put("banner", baiDang.getBanner());
+
+            if (baiDang.getNhaTuyenDung() != null) {
+                map.put("tenCongTy", baiDang.getNhaTuyenDung().getTenCongTy());
+            } else {
+                map.put("tenCongTy", "Không rõ");
+            }
+
+            return map;
+        }).toList();
+
+        return ResponseEntity.ok(response);
+    }
+
+    
+    // ✅ Duyệt bài đăng
+    @PutMapping("/BaiDang/{id}/duyet")
+    public ResponseEntity<?> duyetBaiDang(@PathVariable Integer id) {
+        quanTriVienService.duyetBaiDangTuyenDung(id);
         return ResponseEntity.ok("Bài đăng đã được duyệt.");
     }
 
-    @PutMapping("/BaiDang/{id}/reject")
-    public ResponseEntity<?> rejectBaiDang(@PathVariable Integer id) {
-        quanTriVienService.rejectBaiDangTuyenDung(id);
+    // ✅ Từ chối bài đăng
+    @PutMapping("/BaiDang/{id}/tuchoi")
+    public ResponseEntity<?> tuChoiBaiDang(@PathVariable Integer id) {
+        quanTriVienService.tuchoiBaiDangTuyenDung(id);
         return ResponseEntity.ok("Bài đăng đã bị từ chối.");
     }
 
+    // ✅ Xóa bài đăng
     @DeleteMapping("/BaiDang/{id}")
-    public ResponseEntity<?> deleteBaiDang(@PathVariable Integer id, @RequestParam Integer idNguoiXoa) {
-        quanTriVienService.deleteBaiDangTuyenDung(id, idNguoiXoa);
+    public ResponseEntity<?> xoaBaiDang(@PathVariable Integer id, @RequestParam Integer idNguoiXoa) {
+        quanTriVienService.xoaBaiDangTuyenDung(id, idNguoiXoa);
         return ResponseEntity.ok("Đã xóa bài đăng có ID: " + id);
     }
+
 
     
     // ========================== Bình Luận ==========================

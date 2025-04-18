@@ -6,6 +6,7 @@ import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Data
 @Entity
@@ -68,6 +69,7 @@ public class BaiDangTuyenDung {
     private String banner;
 
     @OneToMany(mappedBy = "baiDangTuyenDung", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<DonUngTuyen> donUngTuyens;
 
     @PrePersist

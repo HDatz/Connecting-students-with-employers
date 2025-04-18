@@ -1,6 +1,7 @@
 package com.example.dai_nam.service;
 
 import com.example.dai_nam.model.*;
+import com.example.dai_nam.model.BaiDangTuyenDung.TrangThaiBaiDang;
 import com.example.dai_nam.repository.*;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -269,9 +270,18 @@ public class QuanTriVienService {
         baiVietHuongNghiepRepository.deleteById(id);
     }
 
-    // # Quản lý bài tuyển dụng: Duyệt bài đăng tuyển dụng
+    //-----------------Quản lý bài tuyển dụng: Duyệt bài đăng tuyển dụng-----------------//
+    
+    public List<BaiDangTuyenDung> getAllBaiDang() {
+        return baiDangTuyenDungRepository.findAll();
+    }
+    
+    public List<BaiDangTuyenDung> getBaiDangByTrangThai(TrangThaiBaiDang trangThai) {
+        return baiDangTuyenDungRepository.findByTrangThai(trangThai);
+    }
+    
     @Transactional
-    public void approveBaiDangTuyenDung(Integer id) {
+    public void duyetBaiDangTuyenDung(Integer id) {
         Optional<BaiDangTuyenDung> baiDang = baiDangTuyenDungRepository.findById(id);
         if (baiDang.isPresent()) {
             baiDang.get().setTrangThai(BaiDangTuyenDung.TrangThaiBaiDang.DA_DUYET);
@@ -287,36 +297,11 @@ public class QuanTriVienService {
 
 
     
-    // # Quản lý bài viết hướng nghiệp: Cập nhật bài viết
-    public BaiDangTuyenDung updateBaiDangTuyenDung(int idBaiDang, BaiDangTuyenDung updatedBaiDangTuyenDung, int idNhaTuyenDung) {
-        Optional<BaiDangTuyenDung> optionalBaiDang = baiDangTuyenDungRepository.findById(idBaiDang);
 
-        if (optionalBaiDang.isPresent()) {
-            BaiDangTuyenDung existingBaiDang = optionalBaiDang.get();
-
-            //Kiểm tra quyền sửa đổi (chỉ nhà tuyển dụng sở hữu mới được sửa)
-            if (existingBaiDang.getNhaTuyenDung().getIdNhaTuyenDung() != idNhaTuyenDung) {
-                throw new IllegalArgumentException("Bạn không có quyền chỉnh sửa bài đăng này!");
-            }
-
-            //Cập nhật thông tin bài đăng
-            existingBaiDang.setTieuDe(updatedBaiDangTuyenDung.getTieuDe());
-            existingBaiDang.setMoTa(updatedBaiDangTuyenDung.getMoTa());
-            existingBaiDang.setYeuCau(updatedBaiDangTuyenDung.getYeuCau());
-            existingBaiDang.setMucLuong(updatedBaiDangTuyenDung.getMucLuong());
-            existingBaiDang.setDiaDiem(updatedBaiDangTuyenDung.getDiaDiem());
-
-            // Khi nhà tuyển dụng sửa bài đăng, chuyển về trạng thái "CHỜ DUYỆT"
-            existingBaiDang.setTrangThai(BaiDangTuyenDung.TrangThaiBaiDang.CHO_DUYET);
-
-            return baiDangTuyenDungRepository.save(existingBaiDang);
-        }
-        throw new IllegalArgumentException("Không tìm thấy bài đăng!");
-    }
     
     // # Quản lý bài tuyển dụng: Từ chối bài đăng tuyển dụng
     @Transactional
-    public void rejectBaiDangTuyenDung(Integer id) {
+    public void tuchoiBaiDangTuyenDung(Integer id) {
         Optional<BaiDangTuyenDung> baiDang = baiDangTuyenDungRepository.findById(id);
         if (baiDang.isPresent()) {
             baiDang.get().setTrangThai(BaiDangTuyenDung.TrangThaiBaiDang.TU_CHOI);
@@ -333,7 +318,7 @@ public class QuanTriVienService {
     
     //Xóa Bài đăng tuyển dụng
     @Transactional
-    public void deleteBaiDangTuyenDung(int idBaiDang, int idNguoiXoa) {
+    public void xoaBaiDangTuyenDung(int idBaiDang, int idNguoiXoa) {
         Optional<BaiDangTuyenDung> optionalBaiDang = baiDangTuyenDungRepository.findById(idBaiDang);
 
         if (optionalBaiDang.isPresent()) {
@@ -353,7 +338,7 @@ public class QuanTriVienService {
     }
    
     
-    // # Quản lý bình luận: Xóa bình luận không phù hợp
+    // --------------------- Quản lý bình luận: Xóa bình luận không phù hợp------------------//
     @Transactional
     public void deleteBinhLuan(Integer id) {
         binhLuanRepository.deleteById(id);
