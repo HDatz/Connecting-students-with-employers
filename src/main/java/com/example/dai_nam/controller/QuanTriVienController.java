@@ -361,7 +361,7 @@ public class QuanTriVienController {
         return ResponseEntity.ok(response);
     }
     
-  //---------- Lấy Danh Sách Các Bài Đăng Chưa Duyệt --------------------//
+    // Lay danh sách bài đăng chờ duyệt
     @GetMapping("/BaiDang/choduyet")
     public ResponseEntity<List<Map<String, Object>>> getBaiDangChoDuyet() {
         List<BaiDangTuyenDung> list = quanTriVienService.getBaiDangByTrangThai(TrangThaiBaiDang.CHO_DUYET);
@@ -393,7 +393,12 @@ public class QuanTriVienController {
 
         return ResponseEntity.ok(response);
     }
-
+    
+    @PutMapping("/BaiDang/{id}/choduyet")
+    public ResponseEntity<?> duaLaiChoDuyet(@PathVariable Integer id) {
+        quanTriVienService.duaLaiChoDuyetBaiDangTuyenDung(id);
+        return ResponseEntity.ok("Đã đưa bài đăng trở lại trạng thái chờ duyệt.");
+    }
     
     // ✅ Duyệt bài đăng
     @PutMapping("/BaiDang/{id}/duyet")

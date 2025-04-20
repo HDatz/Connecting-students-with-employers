@@ -30,7 +30,9 @@ public class NhaTuyenDungController {
 
         return ResponseEntity.ok(nhaTuyenDungService.updateNhaTuyenDung(idNguoiCapNhat, id, updatedNhaTuyenDung));
     }
-
+    
+    
+    
     @PostMapping("/bai-dang")
     public ResponseEntity<BaiDangTuyenDung> createBaiDang(
             @RequestBody BaiDangTuyenDung baiDangTuyenDung,

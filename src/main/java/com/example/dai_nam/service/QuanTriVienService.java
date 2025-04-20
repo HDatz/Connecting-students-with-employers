@@ -295,6 +295,24 @@ public class QuanTriVienService {
         }
     }
 
+    @Transactional
+    public void duaLaiChoDuyetBaiDangTuyenDung(Integer id) {
+        Optional<BaiDangTuyenDung> baiDangOpt = baiDangTuyenDungRepository.findById(id);
+        if (baiDangOpt.isPresent()) {
+            BaiDangTuyenDung baiDang = baiDangOpt.get();
+            baiDang.setTrangThai(BaiDangTuyenDung.TrangThaiBaiDang.CHO_DUYET);
+            baiDangTuyenDungRepository.save(baiDang);
+
+            // Gửi thông báo cho nhà tuyển dụng
+            thongBaoService.createThongBao(new ThongBao(
+                baiDang.getNhaTuyenDung().getIdNhaTuyenDung(),
+                ThongBao.LoaiNguoiNhan.NHA_TUYEN_DUNG,
+                "Bài đăng của bạn đã được đưa lại trạng thái chờ duyệt."
+            ));
+        } else {
+            throw new IllegalArgumentException("Không tìm thấy bài đăng tuyển dụng!");
+        }
+    }
 
     
 
