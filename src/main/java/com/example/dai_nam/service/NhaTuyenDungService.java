@@ -115,8 +115,7 @@ public class NhaTuyenDungService {
         if (nhaTuyenDungOpt.isEmpty()) {
             throw new IllegalArgumentException("Nhà tuyển dụng không tồn tại!");
         }
-        
-        baiTuyenDung.setBanner(null);
+       
         baiTuyenDung.setNhaTuyenDung(nhaTuyenDungOpt.get()); // ✅ Gán thông tin đầy đủ
         baiTuyenDung.setNgayDang(new Timestamp(System.currentTimeMillis())); // ✅ Thêm ngày đăng
         baiTuyenDung.setTrangThai(BaiDangTuyenDung.TrangThaiBaiDang.CHO_DUYET); // ✅ Mặc định trạng thái
@@ -124,7 +123,12 @@ public class NhaTuyenDungService {
         return baiDangTuyenDungRepository.save(baiTuyenDung);
     }
 
+    public BaiDangTuyenDung getBaiDangById(int id) {
+        return baiDangTuyenDungRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bài đăng với ID: " + id));
+    }
 
+    
     // 3. Nhà tuyển dụng cập nhật bài đăng tuyển dụng
     public BaiDangTuyenDung updateBaiDangTuyenDung(int idBaiDang, int idNguoiCapNhat, BaiDangTuyenDung updatedBaiDang) {
         Optional<BaiDangTuyenDung> optionalBaiDang = baiDangTuyenDungRepository.findById(idBaiDang);
