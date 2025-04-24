@@ -181,10 +181,12 @@ public class NhaTuyenDungController {
     // --- Lấy tất cả bài đăng của NTD ---
     @GetMapping("/{id}/bai-dang")
     public ResponseEntity<List<BaiDangTuyenDung>> getAllBaiDang(
-            @PathVariable int id) {
-        return ResponseEntity.ok(
-            nhaTuyenDungService.getAllBaiDangTuyenDungByNhaTuyenDung(id)
-        );
+            @PathVariable int id,
+            @RequestParam(name = "trangThai", required = false) BaiDangTuyenDung.TrangThaiBaiDang trangThai) {
+        
+        List<BaiDangTuyenDung> baiDangList = nhaTuyenDungService.getAllBaiDangTuyenDungByNhaTuyenDung(id, trangThai);
+        
+        return ResponseEntity.ok(baiDangList);
     }
 
     // --- Xử lý ứng viên ---

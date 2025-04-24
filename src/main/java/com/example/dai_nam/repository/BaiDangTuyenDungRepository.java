@@ -14,6 +14,8 @@ public interface BaiDangTuyenDungRepository extends JpaRepository<BaiDangTuyenDu
 
     List<BaiDangTuyenDung> findByNhaTuyenDung_IdNhaTuyenDung(int nhaTuyenDungId);
     
+    List<BaiDangTuyenDung> findByNhaTuyenDung_IdNhaTuyenDungAndTrangThai(int nhaTuyenDungId, BaiDangTuyenDung.TrangThaiBaiDang trangThai);
+    
     List<BaiDangTuyenDung> findByTrangThai (TrangThaiBaiDang trangThai);
 
     List<BaiDangTuyenDung> findByTieuDeContainingOrDiaDiemContaining(String keyword, String keyword2);

@@ -1,6 +1,7 @@
 package com.example.dai_nam.service;
 
 import com.example.dai_nam.model.*;
+import com.example.dai_nam.model.BaiDangTuyenDung.TrangThaiBaiDang;
 import com.example.dai_nam.repository.*;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -202,4 +203,11 @@ public class SinhVienService {
     public BaiVietHuongNghiep getBaiVietById(Integer id) {
         return baiVietHuongNghiepRepository.findById(id).orElse(null);
     }
+    
+    
+    public List<BaiDangTuyenDung> getBaiTuyenDungDaDuyet() {
+        // Truy vấn các bài tuyển dụng có trạng thái 'DA_DUYET'
+        return baiDangTuyenDungRepository.findByTrangThai(TrangThaiBaiDang.DA_DUYET);
+    }
+    
 }

@@ -55,7 +55,7 @@ public class NhaTuyenDungService {
         return nhaTuyenDungRepository.findByEmail(email);
     }
 
-    // ✅ 1. Cập nhật thông tin nhà tuyển dụng (chỉ sửa tài khoản của mình)
+    // 1. Cập nhật thông tin nhà tuyển dụng (chỉ sửa tài khoản của mình)
     @Transactional
     public NhaTuyenDung updateNhaTuyenDung(Integer idNguoiCapNhat, Integer idNhaTuyenDung,
                                            NhaTuyenDung updatedNhaTuyenDung) {
@@ -177,10 +177,13 @@ public class NhaTuyenDungService {
 
 
     // 5. Nhà tuyển dụng xem danh sách bài đăng của mình
-    public List<BaiDangTuyenDung> getAllBaiDangTuyenDungByNhaTuyenDung(int nhaTuyenDungId) {
-        return baiDangTuyenDungRepository.findByNhaTuyenDung_IdNhaTuyenDung(nhaTuyenDungId);
+    public List<BaiDangTuyenDung> getAllBaiDangTuyenDungByNhaTuyenDung(int nhaTuyenDungId, BaiDangTuyenDung.TrangThaiBaiDang trangThai) {
+        if (trangThai != null) {
+            return baiDangTuyenDungRepository.findByNhaTuyenDung_IdNhaTuyenDungAndTrangThai(nhaTuyenDungId, trangThai);
+        } else {
+            return baiDangTuyenDungRepository.findByNhaTuyenDung_IdNhaTuyenDung(nhaTuyenDungId);
+        }
     }
-
     // 6. Nhà tuyển dụng duyệt ứng viên (Chấp nhận / Từ chối)
  
     @Transactional
