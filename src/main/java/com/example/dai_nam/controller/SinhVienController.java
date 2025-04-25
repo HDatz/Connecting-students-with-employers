@@ -1,8 +1,10 @@
 package com.example.dai_nam.controller;
 
 import java.util.List;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +18,7 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 
+import com.example.dai_nam.model.BaiDangTuyenDung;
 import com.example.dai_nam.model.BaiVietHuongNghiep;
 import com.example.dai_nam.model.NhaTuyenDung;
 import com.example.dai_nam.service.SinhVienService;
@@ -27,6 +30,8 @@ public class SinhVienController {
 
     @Autowired
     private SinhVienService sinhVienService;
+    
+    private final Path uploadPath = Paths.get("uploads/banner");
     
     @GetMapping("/NhaTuyenDung")
     public ResponseEntity<List<NhaTuyenDung>> getAllNhaTuyenDung() {
@@ -86,5 +91,28 @@ public class SinhVienController {
                     .body("Không tìm thấy nhà tuyển dụng có ID: " + id);
         }
         return ResponseEntity.ok(nhaTuyenDung); 
+    }
+    
+    @GetMapping("/bai-dang")
+    public List<BaiDangTuyenDung> getAllApprovedPosts() {
+        return sinhVienService.getBaiTuyenDungDaDuyet();
+    }
+    
+    @GetMapping("/banners/{filename:.+}")
+    public ResponseEntity<Resource> getBanner(@PathVariable String filename) {
+        try {
+            Path file = uploadPath.resolve(filename);
+            Resource resource = new UrlResource(file.toUri());
+            if (resource.exists() || resource.isReadable()) {
+                String contentType = Files.probeContentType(file);
+                return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .body(resource);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }
