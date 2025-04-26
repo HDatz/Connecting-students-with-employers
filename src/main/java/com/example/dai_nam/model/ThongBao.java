@@ -44,18 +44,6 @@ public class ThongBao {
         QUAN_TRI_VIEN
     }
 
-    @ManyToOne
-    @JoinColumn(name = "id_sinh_vien")
-    private SinhVien sinhVien;
-
-    @ManyToOne
-    @JoinColumn(name = "id_nha_tuyen_dung")
-    private NhaTuyenDung nhaTuyenDung;
-
-    @ManyToOne
-    @JoinColumn(name = "id_quan_tri_vien")
-    private QuanTriVien quanTriVien;
-
     public ThongBao(Integer idNguoiNhan, LoaiNguoiNhan loaiNguoiNhan, String noiDung) {
         this.idNguoiNhan = idNguoiNhan;
         this.loaiNguoiNhan = loaiNguoiNhan;

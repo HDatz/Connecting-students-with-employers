@@ -35,6 +35,12 @@ public class SinhVienService {
     
     @Autowired
     private NhaTuyenDungRepository nhaTuyenDungRepository;
+    
+    @Autowired
+    private DonUngTuyenRepository donUngTuyenRepository;
+    
+    @Autowired
+    private ThongBaoRepository thongBaoRepository;
 
 
     @Autowired
@@ -204,10 +210,75 @@ public class SinhVienService {
         return baiVietHuongNghiepRepository.findById(id).orElse(null);
     }
     
+ //--------------------------- Đơn Ứng Tuyển ----------------------------//
     
     public List<BaiDangTuyenDung> getBaiTuyenDungDaDuyet() {
         // Truy vấn các bài tuyển dụng có trạng thái 'DA_DUYET'
         return baiDangTuyenDungRepository.findByTrangThai(TrangThaiBaiDang.DA_DUYET);
     }
     
+    
+    @Transactional
+    public DonUngTuyen createDonUngTuyen(int sinhVienId, int baiDangId) {
+        Optional<SinhVien> optionalSinhVien = sinhVienRepository.findById(sinhVienId);
+        Optional<BaiDangTuyenDung> optionalBaiDang = baiDangTuyenDungRepository.findById(baiDangId);
+
+        if (optionalSinhVien.isEmpty()) {
+            throw new IllegalArgumentException("Sinh viên không tồn tại.");
+        }
+        if (optionalBaiDang.get().getTrangThai() != TrangThaiBaiDang.DA_DUYET) {
+            throw new IllegalArgumentException("Bài đăng tuyển dụng chưa được duyệt.");
+        }
+        if (optionalBaiDang.isEmpty()) {
+            throw new IllegalArgumentException("Bài đăng tuyển dụng không tồn tại.");
+        }
+        
+        if (donUngTuyenRepository.existsBySinhVien_IdSinhVienAndBaiDangTuyenDung_IdBaiDang(sinhVienId, baiDangId)) {
+            throw new IllegalArgumentException("Bạn đã ứng tuyển bài đăng này rồi.");
+        }
+
+        DonUngTuyen donUngTuyen = new DonUngTuyen();
+        donUngTuyen.setSinhVien(optionalSinhVien.get());
+        donUngTuyen.setBaiDangTuyenDung(optionalBaiDang.get());
+        donUngTuyen.setTrangThai("Chờ duyệt");
+        
+        donUngTuyen.setNhaTuyenDung(optionalBaiDang.get().getNhaTuyenDung());
+        
+        DonUngTuyen savedDon = donUngTuyenRepository.save(donUngTuyen);
+        taoThongBaoUngTuyen(savedDon); // Gửi thông báo cho nhà tuyển dụng
+        return savedDon;
+    }
+    
+    @Transactional
+    private void taoThongBaoUngTuyen(DonUngTuyen donUngTuyen) {
+        ThongBao thongBao = new ThongBao();
+        thongBao.setIdNguoiNhan(donUngTuyen.getBaiDangTuyenDung().getNhaTuyenDung().getIdNhaTuyenDung());
+        thongBao.setLoaiNguoiNhan(ThongBao.LoaiNguoiNhan.NHA_TUYEN_DUNG);
+        thongBao.setNoiDung("Sinh viên " + donUngTuyen.getSinhVien().getHoTen() +
+                " vừa ứng tuyển vào bài đăng: " + donUngTuyen.getBaiDangTuyenDung().getTieuDe());
+        thongBaoRepository.save(thongBao);
+    }
+
+    // Xóa đơn ứng tuyển (nếu sinh viên muốn hủy)
+    @Transactional
+    public void deleteDonUngTuyen(int sinhVienId, int idDon) {
+        Optional<DonUngTuyen> optionalDon = donUngTuyenRepository.findById(idDon);
+
+        if (optionalDon.isEmpty()) {
+            throw new IllegalArgumentException("Đơn ứng tuyển không tồn tại.");
+        }
+
+        DonUngTuyen donUngTuyen = optionalDon.get();
+
+        // Chỉ sinh viên sở hữu đơn mới được xóa
+        if (donUngTuyen.getSinhVien().getIdSinhVien() != sinhVienId) {
+            throw new IllegalArgumentException("Bạn không có quyền xóa đơn này.");
+        }
+
+        donUngTuyenRepository.deleteById(idDon);
+    }
+    
+    public List<DonUngTuyen> getDonUngTuyenBySinhVien(int sinhVienId) {
+        return donUngTuyenRepository.findBySinhVien_IdSinhVien(sinhVienId);
+    }
 }

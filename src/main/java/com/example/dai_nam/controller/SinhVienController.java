@@ -9,9 +9,12 @@ import java.net.MalformedURLException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -20,6 +23,7 @@ import org.springframework.http.MediaType;
 
 import com.example.dai_nam.model.BaiDangTuyenDung;
 import com.example.dai_nam.model.BaiVietHuongNghiep;
+import com.example.dai_nam.model.DonUngTuyen;
 import com.example.dai_nam.model.NhaTuyenDung;
 import com.example.dai_nam.service.SinhVienService;
 
@@ -93,6 +97,8 @@ public class SinhVienController {
         return ResponseEntity.ok(nhaTuyenDung); 
     }
     
+//--------------Bài Đăng Tuyển Dụng ---------------------//
+    
     @GetMapping("/bai-dang")
     public List<BaiDangTuyenDung> getAllApprovedPosts() {
         return sinhVienService.getBaiTuyenDungDaDuyet();
@@ -113,6 +119,38 @@ public class SinhVienController {
             }
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    @GetMapping("/ung-tuyen")
+    public ResponseEntity<?> getLichSuUngTuyen(@RequestParam int sinhVienId) {
+        try {
+            List<DonUngTuyen> ds = sinhVienService.getDonUngTuyenBySinhVien(sinhVienId);
+            return ResponseEntity.ok(ds);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+    
+    // Tạo đơn ứng tuyển
+    @PostMapping("/ung-tuyen")
+    public ResponseEntity<?> createDonUngTuyen(@RequestParam int sinhVienId, @RequestParam int baiDangId) {
+        try {
+            DonUngTuyen donUngTuyen = sinhVienService.createDonUngTuyen(sinhVienId, baiDangId);
+            return ResponseEntity.ok(donUngTuyen);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    // Xóa đơn ứng tuyển
+    @DeleteMapping("/huy-ung-tuyen/{idDon}")
+    public ResponseEntity<?> deleteDonUngTuyen(@RequestParam int sinhVienId, @PathVariable int idDon) {
+        try {
+            sinhVienService.deleteDonUngTuyen(sinhVienId, idDon);
+            return ResponseEntity.ok("Hủy đơn ứng tuyển thành công.");
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
         }
     }
 }

@@ -10,4 +10,9 @@ import com.example.dai_nam.model.DonUngTuyen;
 @Repository
 public interface DonUngTuyenRepository extends JpaRepository<DonUngTuyen, Integer> {
     List<DonUngTuyen> findByBaiDangTuyenDung_IdBaiDang(Integer baiDangId);
+    
+    boolean existsBySinhVien_IdSinhVienAndBaiDangTuyenDung_IdBaiDang(Integer sinhVienId, Integer baiDangId);
+
+ // Lấy tất cả đơn ứng tuyển của 1 sinh viên
+	List<DonUngTuyen> findBySinhVien_IdSinhVien(Integer sinhVienId);
 }

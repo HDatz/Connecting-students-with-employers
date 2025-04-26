@@ -39,6 +39,9 @@ public class NhaTuyenDungService {
     
     @Autowired
     private BaiVietHuongNghiepRepository baiVietHuongNghiepRepository;
+    
+    @Autowired
+    private ThongBaoService thongBaoService;
 
     @Autowired
     private JavaMailSender mailSender; // Gửi email thông báo
@@ -187,31 +190,40 @@ public class NhaTuyenDungService {
     // 6. Nhà tuyển dụng duyệt ứng viên (Chấp nhận / Từ chối)
  
     @Transactional
-    public void xuLyUngVien(int ungTuyenId, int idNhaTuyenDung, boolean chapNhan) {
-    	
-    	DonUngTuyen ungTuyen = donUngTuyenRepository.findById(ungTuyenId)
-    		    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn ứng tuyển!"));
-        BaiDangTuyenDung baiDang = ungTuyen.getBaiDangTuyenDung();
+    public DonUngTuyen xuLyUngVien(int ungTuyenId, int idNhaTuyenDung, boolean chapNhan) {
+        DonUngTuyen ungTuyen = donUngTuyenRepository.findById(ungTuyenId)
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn ứng tuyển!"));
 
-        // ✅ Kiểm tra xem người duyệt có phải chủ bài đăng không
+        BaiDangTuyenDung baiDang = ungTuyen.getBaiDangTuyenDung();
         if (baiDang.getNhaTuyenDung().getIdNhaTuyenDung() != idNhaTuyenDung) {
             throw new IllegalArgumentException("Bạn không có quyền duyệt ứng viên này!");
         }
 
-        SinhVien sinhVien = ungTuyen.getSinhVien();
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        ungTuyen.setTrangThai(chapNhan ? "Đã chấp nhận" : "Đã từ chối");
+        ungTuyen.setNgayPhanHoi(now);
 
-        if (chapNhan) {
-            ungTuyen.setTrangThai("Đã chấp nhận");
-            sendEmail(sinhVien.getEmail(), "Chúc mừng! Bạn đã được nhà tuyển dụng chấp nhận.",
-                    "Bạn đã được chấp nhận vào vị trí: " + baiDang.getTieuDe());
-        } else {
-            ungTuyen.setTrangThai("Đã từ chối");
-            sendEmail(sinhVien.getEmail(), "Rất tiếc! Bạn đã bị từ chối.",
-                    "Nhà tuyển dụng đã từ chối đơn ứng tuyển của bạn.");
-        }
+        // gửi email
+        sendEmail(
+          ungTuyen.getSinhVien().getEmail(),
+          chapNhan ? "Chúc mừng! Bạn đã được chấp nhận." : "Rất tiếc! Bạn bị từ chối.",
+          chapNhan
+            ? "Bạn đã được nhận vị trí: " + baiDang.getTieuDe()
+            : "Nhà tuyển dụng đã từ chối đơn ứng tuyển của bạn."
+        );
 
-        donUngTuyenRepository.save(ungTuyen);
+        // tạo notification trên UI
+        thongBaoService.createThongBao(new ThongBao(
+            ungTuyen.getSinhVien().getIdSinhVien(),
+            ThongBao.LoaiNguoiNhan.SINH_VIEN,
+            chapNhan
+                ? "Bạn đã được chấp nhận vị trí: " + baiDang.getTieuDe()
+                : "Đơn ứng tuyển của bạn đã bị từ chối."
+        ));
+
+        return donUngTuyenRepository.save(ungTuyen);
     }
+
 
 
     // 7. Thông báo đến nhà tuyển dụng khi có ứng viên ứng tuyển
