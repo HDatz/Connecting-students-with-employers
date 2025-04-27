@@ -5,8 +5,8 @@ import jakarta.persistence.*;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Data
 @Entity
@@ -20,7 +20,7 @@ public class BaiDangTuyenDung {
 
     @ManyToOne
     @JoinColumn(name = "id_nha_tuyen_dung", nullable = false)
-    @JsonBackReference
+    @JsonIgnoreProperties({"baiDangTuyenDungs", "donUngTuyens", "binhLuans"})
     private NhaTuyenDung nhaTuyenDung;
 
     @Column(name = "tieu_de", nullable = false, length = 100)

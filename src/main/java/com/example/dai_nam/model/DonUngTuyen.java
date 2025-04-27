@@ -7,6 +7,8 @@ import lombok.Setter;
 import jakarta.persistence.*;
 import java.sql.Timestamp;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Data
 @Entity
 @Table(name = "don_ung_tuyen")
@@ -30,14 +32,17 @@ public class DonUngTuyen {
 
     @ManyToOne
     @JoinColumn(name = "id_bai_dang", nullable = false)
+    @JsonIgnoreProperties({"donUngTuyens"})
     private BaiDangTuyenDung baiDangTuyenDung;
 
     @ManyToOne
     @JoinColumn(name = "id_sinh_vien", nullable = false)
+    @JsonIgnoreProperties({"donUngTuyens"})
     private SinhVien sinhVien;
 
     @ManyToOne
     @JoinColumn(name = "id_nha_tuyen_dung")
+    @JsonIgnoreProperties({"donUngTuyens"})
     private NhaTuyenDung nhaTuyenDung;
 
 }
