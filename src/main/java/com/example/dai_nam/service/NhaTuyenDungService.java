@@ -39,9 +39,6 @@ public class NhaTuyenDungService {
     
     @Autowired
     private BaiVietHuongNghiepRepository baiVietHuongNghiepRepository;
-    
-    @Autowired
-    private ThongBaoService thongBaoService;
 
     @Autowired
     private JavaMailSender mailSender; // Gửi email thông báo
@@ -188,14 +185,14 @@ public class NhaTuyenDungService {
         }
     }
     // 6. Nhà tuyển dụng duyệt ứng viên (Chấp nhận / Từ chối)
- 
     @Transactional
     public DonUngTuyen xuLyUngVien(int ungTuyenId, int idNhaTuyenDung, boolean chapNhan) {
         DonUngTuyen ungTuyen = donUngTuyenRepository.findById(ungTuyenId)
             .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn ứng tuyển!"));
 
         BaiDangTuyenDung baiDang = ungTuyen.getBaiDangTuyenDung();
-        if (baiDang.getNhaTuyenDung().getIdNhaTuyenDung() != idNhaTuyenDung) {
+        NhaTuyenDung ntv = baiDang.getNhaTuyenDung();
+        if (!ntv.getIdNhaTuyenDung().equals(idNhaTuyenDung)) {
             throw new IllegalArgumentException("Bạn không có quyền duyệt ứng viên này!");
         }
 
@@ -203,17 +200,46 @@ public class NhaTuyenDungService {
         ungTuyen.setTrangThai(chapNhan ? "Đã chấp nhận" : "Đã từ chối");
         ungTuyen.setNgayPhanHoi(now);
 
-        // gửi email
+        // --- XÂY DỰNG EMAIL ---
+        String subject = chapNhan
+            ? "Chúc mừng! Bạn đã được chấp nhận vị trí " + baiDang.getTieuDe()
+            : "Kết quả đơn ứng tuyển: Bạn không được chọn cho vị trí " + baiDang.getTieuDe();
+
+        StringBuilder body = new StringBuilder();
+        body.append("Xin chào ").append(ungTuyen.getSinhVien().getHoTen()).append(",\n\n");
+        if (chapNhan) {
+            body.append("Chúc mừng bạn đã được CHẤP NHẬN vào vị trí sau:\n");
+        } else {
+            body.append("Rất tiếc, bạn đã KHÔNG được chọn cho vị trí sau:\n");
+        }
+        // Thông tin vị trí
+        body.append("• Tiêu đề: ").append(baiDang.getTieuDe()).append("\n")
+            .append("• Mức lương: ").append(baiDang.getMucLuong()).append("\n")
+            .append("• Địa điểm: ").append(baiDang.getDiaDiem()).append("\n")
+            .append("• Loại công việc: ").append(baiDang.getLoaiCongViec()).append("\n\n");
+        // Thông tin nhà tuyển dụng
+        body.append("Thông tin nhà tuyển dụng:\n")
+            .append("• Tên công ty: ").append(ntv.getTenCongTy()).append("\n")
+            .append("• Email: ").append(ntv.getEmail()).append("\n")
+            .append("• SĐT: ").append(ntv.getSoDienThoai()).append("\n")
+            .append("• Địa chỉ: ").append(ntv.getDiaChi()).append("\n\n");
+        // Lời kết
+        if (chapNhan) {
+            body.append("Hẹn gặp bạn trong buổi phỏng vấn hoặc ngày nhận việc sắp tới!\n");
+        } else {
+            body.append("Chúng tôi mong muốn được hợp tác với bạn trong các cơ hội tiếp theo.\n");
+        }
+        body.append("\nTrân trọng,\n").append(ntv.getTenCongTy());
+
+        // --- GỌI GỬI EMAIL ---
         sendEmail(
           ungTuyen.getSinhVien().getEmail(),
-          chapNhan ? "Chúc mừng! Bạn đã được chấp nhận." : "Rất tiếc! Bạn bị từ chối.",
-          chapNhan
-            ? "Bạn đã được nhận vị trí: " + baiDang.getTieuDe()
-            : "Nhà tuyển dụng đã từ chối đơn ứng tuyển của bạn."
+          subject,
+          body.toString()
         );
 
-        // tạo notification trên UI
-        thongBaoService.createThongBao(new ThongBao(
+        // Tạo notification trên UI
+        thongbaoService.createThongBao(new ThongBao(
             ungTuyen.getSinhVien().getIdSinhVien(),
             ThongBao.LoaiNguoiNhan.SINH_VIEN,
             chapNhan
@@ -223,6 +249,7 @@ public class NhaTuyenDungService {
 
         return donUngTuyenRepository.save(ungTuyen);
     }
+
 
 
 
