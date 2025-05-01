@@ -114,6 +114,24 @@ public class NhaTuyenDungController {
             .createBaiTuyenDung(bai, idNguoiDang);
         return ResponseEntity.ok(saved);
     }
+    
+    @GetMapping("/banners/{filename:.+}")
+    public ResponseEntity<Resource> getBanner(@PathVariable String filename) {
+        try {
+            Path file = uploadPath.resolve(filename);
+            Resource resource = new UrlResource(file.toUri());
+            if (resource.exists() || resource.isReadable()) {
+                String contentType = Files.probeContentType(file);
+                return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .body(resource);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 
     // --- Cập nhật bài đăng (có thể đổi banner) ---
     @PutMapping(
@@ -206,6 +224,16 @@ public class NhaTuyenDungController {
         nhaTuyenDungService.xuLyUngVien(id, idNhaTuyenDung, chapNhan);
         return ResponseEntity.ok("Ứng viên đã được xử lý.");
     }
+    
+    //--------------Xoa Đơn---------------//
+    @DeleteMapping("/ung-vien/{id}")
+    public ResponseEntity<?> xoaUngVien(
+            @PathVariable("id") int idDon,
+            @RequestParam("idNhaTuyenDung") int idNhaTuyenDung) {
+        nhaTuyenDungService.xoaDonUngTuyen(idDon, idNhaTuyenDung);
+        return ResponseEntity.ok("Xóa đơn ứng tuyển thành công.");
+    }
+
 
     // --- Lấy ứng viên theo bài đăng ---
     @GetMapping("/bai-dang/{id}/ung-vien")

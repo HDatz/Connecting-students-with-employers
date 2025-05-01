@@ -6,6 +6,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -184,6 +185,7 @@ public class NhaTuyenDungService {
             return baiDangTuyenDungRepository.findByNhaTuyenDung_IdNhaTuyenDung(nhaTuyenDungId);
         }
     }
+    
     // 6. Nhà tuyển dụng duyệt ứng viên (Chấp nhận / Từ chối)
     @Transactional
     public DonUngTuyen xuLyUngVien(int ungTuyenId, int idNhaTuyenDung, boolean chapNhan) {
@@ -197,7 +199,8 @@ public class NhaTuyenDungService {
         }
 
         Timestamp now = new Timestamp(System.currentTimeMillis());
-        ungTuyen.setTrangThai(chapNhan ? "Đã chấp nhận" : "Đã từ chối");
+     // Hiện tại bạn đang viết
+        ungTuyen.setTrangThai(chapNhan ? "Đã chấp nhận" : "Bị từ chối");
         ungTuyen.setNgayPhanHoi(now);
 
         // --- XÂY DỰNG EMAIL ---
@@ -250,7 +253,18 @@ public class NhaTuyenDungService {
         return donUngTuyenRepository.save(ungTuyen);
     }
 
-
+    @Transactional
+    public void xoaDonUngTuyen(int idDon, int idNhaTuyenDung) {
+        DonUngTuyen don = donUngTuyenRepository.findById(idDon)
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn ứng tuyển với id = " + idDon));
+        
+        // Kiểm tra quyền: chỉ chủ bài đăng (nhà tuyển dụng) mới được xóa
+        if (!don.getBaiDangTuyenDung().getNhaTuyenDung().getIdNhaTuyenDung().equals(idNhaTuyenDung)) {
+            throw new AccessDeniedException("Bạn không có quyền xóa đơn này!");
+        }
+        
+        donUngTuyenRepository.deleteById(idDon);
+    }
 
 
     // 7. Thông báo đến nhà tuyển dụng khi có ứng viên ứng tuyển
