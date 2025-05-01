@@ -45,6 +45,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/SinhVien/BaiVietHuongNghiep/**").permitAll()
                 .requestMatchers("/api/SinhVien/banners/**").permitAll() 
                 .requestMatchers("/api/SinhVien/bai-dang").permitAll()
+                .requestMatchers("/api/nha-tuyen-dung/cv/**").permitAll()
                 .requestMatchers("/api/QuanTriVien/**").hasAuthority("ROLE_QUANTRIVIEN")
                 .requestMatchers("/api/nha-tuyen-dung/**").hasAuthority("ROLE_NHATUYENDUNG")
                 .anyRequest().authenticated()

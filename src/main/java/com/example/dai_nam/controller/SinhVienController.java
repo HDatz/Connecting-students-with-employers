@@ -4,6 +4,8 @@ import java.util.List;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.sql.Timestamp;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpStatus;
@@ -25,17 +28,33 @@ import com.example.dai_nam.model.BaiDangTuyenDung;
 import com.example.dai_nam.model.BaiVietHuongNghiep;
 import com.example.dai_nam.model.DonUngTuyen;
 import com.example.dai_nam.model.NhaTuyenDung;
+import com.example.dai_nam.model.SinhVien;
+import com.example.dai_nam.repository.BaiDangTuyenDungRepository;
+import com.example.dai_nam.repository.DonUngTuyenRepository;
+import com.example.dai_nam.repository.SinhVienRepository;
 import com.example.dai_nam.service.SinhVienService;
 
 @CrossOrigin(origins = "http://127.0.0.1:5500")
 @RestController
 @RequestMapping("/api/SinhVien")
 public class SinhVienController {
+	
+	 @Autowired
+	 private SinhVienRepository sinhVienRepository;
+
+	 @Autowired
+	 private BaiDangTuyenDungRepository baiDangTuyenDungRepository;
+
+	 @Autowired
+	 private DonUngTuyenRepository donUngTuyenRepository;
 
     @Autowired
     private SinhVienService sinhVienService;
     
     private final Path uploadPath = Paths.get("uploads/banner");
+    
+    private final Path cvUploadDir = Paths.get("uploads/cv");
+
     
     @GetMapping("/NhaTuyenDung")
     public ResponseEntity<List<NhaTuyenDung>> getAllNhaTuyenDung() {
@@ -132,16 +151,73 @@ public class SinhVienController {
         }
     }
     
-    // Tạo đơn ứng tuyển
-    @PostMapping("/ung-tuyen")
-    public ResponseEntity<?> createDonUngTuyen(@RequestParam int sinhVienId, @RequestParam int baiDangId) {
+    @PostMapping(value = "/ung-tuyen", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> createDonUngTuyen(
+            @RequestParam int sinhVienId,
+            @RequestParam int baiDangId,
+            @RequestParam(value = "duongDanCv", required = false) MultipartFile duongDanCv) {
+
         try {
-            DonUngTuyen donUngTuyen = sinhVienService.createDonUngTuyen(sinhVienId, baiDangId);
-            return ResponseEntity.ok(donUngTuyen);
+            // --- 1. Validate và lưu file CV ---
+            String fileName = null;
+            if (duongDanCv != null && !duongDanCv.isEmpty()) {
+                // Lấy tên file sạch
+                String cleanName = Paths.get(duongDanCv.getOriginalFilename())
+                                        .getFileName().toString();
+                fileName = "cv_" + sinhVienId + "_" + System.currentTimeMillis() + "_" + cleanName;
+
+                // Tạo thư mục nếu chưa có
+                if (Files.notExists(cvUploadDir)) {
+                    Files.createDirectories(cvUploadDir);
+                }
+
+                // Lưu file, ghi đè nếu đã tồn tại
+                Path target = cvUploadDir.resolve(fileName);
+                Files.copy(duongDanCv.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            // --- 2. Lấy entity SinhVien & BaiDang ---
+            SinhVien sv = sinhVienRepository.findById(sinhVienId)
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sinh viên với ID: " + sinhVienId));
+
+            BaiDangTuyenDung post = baiDangTuyenDungRepository.findById(baiDangId)
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bài đăng với ID: " + baiDangId));
+
+            // Nếu bạn chỉ cho phép ứng tuyển bài đã duyệt
+            if (post.getTrangThai() != BaiDangTuyenDung.TrangThaiBaiDang.DA_DUYET) {
+                return ResponseEntity.badRequest().body("Bài đăng chưa được duyệt.");
+            }
+
+            // Kiểm tra đã ứng tuyển chưa
+            boolean already = donUngTuyenRepository
+              .existsBySinhVien_IdSinhVienAndBaiDangTuyenDung_IdBaiDang(sinhVienId, baiDangId);
+            if (already) {
+                return ResponseEntity.badRequest().body("Bạn đã ứng tuyển bài này rồi.");
+            }
+
+            // --- 3. Tạo và lưu DonUngTuyen ---
+            DonUngTuyen don = new DonUngTuyen();
+            don.setSinhVien(sv);
+            don.setBaiDangTuyenDung(post);
+            don.setNhaTuyenDung(post.getNhaTuyenDung());
+            don.setNgayUngTuyen(new Timestamp(System.currentTimeMillis()));
+            don.setDuongDanCv(fileName);           // đường dẫn CV
+            don.setTrangThai("Chờ duyệt");          // bắt buộc phải set
+
+            DonUngTuyen saved = donUngTuyenRepository.save(don);
+
+            return ResponseEntity.ok(saved);
+
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Lỗi khi lưu file CV: " + e.getMessage());
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }
     }
+
+ 
+
 
     // Xóa đơn ứng tuyển
     @DeleteMapping("/huy-ung-tuyen/{idDon}")

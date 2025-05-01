@@ -50,8 +50,6 @@ public class SinhVien {
     @Column(name = "gioi_thieu")
     private String gioiThieu;
 
-    @Column(name = "duong_dan_cv")
-    private String duongDanCv;
 
     @Column(name = "avatar")
     private String avatar;

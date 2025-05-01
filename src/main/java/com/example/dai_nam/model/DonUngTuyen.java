@@ -34,7 +34,10 @@ public class DonUngTuyen {
     @JoinColumn(name = "id_bai_dang", nullable = false)
     @JsonIgnoreProperties({"donUngTuyens"})
     private BaiDangTuyenDung baiDangTuyenDung;
-
+    
+    @Column(name = "duong_dan_cv")
+    private String duongDanCv;
+    
     @ManyToOne
     @JoinColumn(name = "id_sinh_vien", nullable = false)
     @JsonIgnoreProperties({"donUngTuyens"})
@@ -44,5 +47,8 @@ public class DonUngTuyen {
     @JoinColumn(name = "id_nha_tuyen_dung")
     @JsonIgnoreProperties({"donUngTuyens"})
     private NhaTuyenDung nhaTuyenDung;
+    
+    
+    
 
 }

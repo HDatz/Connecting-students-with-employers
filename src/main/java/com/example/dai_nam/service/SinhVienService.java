@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -42,9 +43,10 @@ public class SinhVienService {
     @Autowired
     private ThongBaoRepository thongBaoRepository;
 
-
     @Autowired
     private JavaMailSender mailSender;
+   
+
     
     public List<NhaTuyenDung> getAllNhaTuyenDung() {
         return nhaTuyenDungRepository.findAll();
@@ -97,7 +99,6 @@ public class SinhVienService {
             existingSinhVien.setNganhHoc(updatedSinhVien.getNganhHoc());
             existingSinhVien.setNamTotNghiep(updatedSinhVien.getNamTotNghiep());
             existingSinhVien.setGioiThieu(updatedSinhVien.getGioiThieu());
-            existingSinhVien.setDuongDanCv(updatedSinhVien.getDuongDanCv());
             existingSinhVien.setAvatar(updatedSinhVien.getAvatar());
 
             return sinhVienRepository.save(existingSinhVien);
@@ -236,12 +237,13 @@ public class SinhVienService {
         if (donUngTuyenRepository.existsBySinhVien_IdSinhVienAndBaiDangTuyenDung_IdBaiDang(sinhVienId, baiDangId)) {
             throw new IllegalArgumentException("Bạn đã ứng tuyển bài đăng này rồi.");
         }
+        
+ 
 
         DonUngTuyen donUngTuyen = new DonUngTuyen();
         donUngTuyen.setSinhVien(optionalSinhVien.get());
         donUngTuyen.setBaiDangTuyenDung(optionalBaiDang.get());
         donUngTuyen.setTrangThai("Chờ duyệt");
-        
         donUngTuyen.setNhaTuyenDung(optionalBaiDang.get().getNhaTuyenDung());
         
         DonUngTuyen savedDon = donUngTuyenRepository.save(donUngTuyen);
