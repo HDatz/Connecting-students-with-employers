@@ -10,17 +10,21 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 
@@ -227,6 +231,49 @@ public class SinhVienController {
             return ResponseEntity.ok("Hủy đơn ứng tuyển thành công.");
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+    
+    //-----------Cập nhật và xem thông tin tài khoản:
+    @GetMapping("/me")
+    public ResponseEntity<SinhVien> xemThongTinCaNhan(Authentication auth) {
+        String email = auth.getName();
+        SinhVien sv = sinhVienService.xemThongTinCaNhan(email);
+        return ResponseEntity.ok(sv);
+    }
+
+    // Cập nhật thông tin của chính mình
+    @PutMapping("/me")
+    public ResponseEntity<SinhVien> capNhatThongTinCaNhan(
+            @RequestBody SinhVien updatedSinhVien,
+            Authentication auth) {
+        String email = auth.getName();
+        SinhVien svCapNhat = sinhVienService.updateSinhVien(email, updatedSinhVien);
+        return ResponseEntity.ok(svCapNhat);
+    }
+    
+    @GetMapping("/avatars/{fileName:.+}")
+    public ResponseEntity<Resource> getAvatarSinhvVien(@PathVariable String fileName) {
+        try {
+            Path filePath = Paths.get("uploads/avatars/").resolve(fileName).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+
+            if (!resource.exists() || !resource.isReadable()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            String contentType = Files.probeContentType(filePath);
+            if (contentType == null) {
+                contentType = "application/octet-stream";
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "inline; filename=\"" + resource.getFilename() + "\"")
+                    .body(resource);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
     }
 }

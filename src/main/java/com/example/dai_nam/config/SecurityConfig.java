@@ -42,6 +42,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/QuanTriVien/company_logos/**").permitAll()
                 .requestMatchers("/api/SinhVien/NhaTuyenDung/**").permitAll()
                 .requestMatchers("/api/SinhVien/company_logos/**").permitAll()
+                .requestMatchers("/api/SinhVien/avatars/**").permitAll()
                 .requestMatchers("/api/SinhVien/BaiVietHuongNghiep/**").permitAll()
                 .requestMatchers("/api/SinhVien/banners/**").permitAll() 
                 .requestMatchers("/api/SinhVien/bai-dang").permitAll()

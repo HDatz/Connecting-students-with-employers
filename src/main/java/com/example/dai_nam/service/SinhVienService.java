@@ -7,6 +7,8 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -72,38 +74,49 @@ public class SinhVienService {
     }
 
     // 3. Cập nhật thông tin sinh viên (chỉ chính chủ)
+ // Xem thông tin
+    public SinhVien xemThongTinCaNhan(String email) {
+        return sinhVienRepository.findByEmail(email)
+            .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy sinh viên với email: " + email));
+    }
+
+    // Cập nhật thông tin (chỉ chính chủ hoặc admin)
     @Transactional
-    public SinhVien updateSinhVien(Integer idNguoiCapNhat, Integer idSinhVien, SinhVien updatedSinhVien) {
-        Optional<SinhVien> optionalSinhVien = sinhVienRepository.findById(idSinhVien);
-        if (optionalSinhVien.isPresent()) {
-            SinhVien existingSinhVien = optionalSinhVien.get();
+    public SinhVien updateSinhVien(String emailNguoiCapNhat, SinhVien updatedSinhVien) {
+        // 1. Lấy sinh viên hiện tại
+        SinhVien existingSinhVien = sinhVienRepository.findByEmail(emailNguoiCapNhat)
+            .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy sinh viên với email: " + emailNguoiCapNhat));
 
-            // Kiểm tra nếu là admin hoặc chính sinh viên đó mới được quyền cập nhật
-            boolean isAdmin = quanTriVienRepository.existsById(idNguoiCapNhat);
-            boolean isOwner = existingSinhVien.getIdSinhVien().equals(idNguoiCapNhat);
+        // 2. Kiểm tra quyền: admin hay chính chủ?
+        //    Nếu emailNguoiCapNhat trùng với email của cái entity lấy ra thì là owner.
+        boolean isOwner = existingSinhVien.getEmail().equals(emailNguoiCapNhat);
+        //    Kiểm tra admin qua repository admin (nếu dùng ID thì cần thêm tìm theo email admin)
+        boolean isAdmin = quanTriVienRepository.existsByEmail(emailNguoiCapNhat);
 
-            if (!isAdmin && !isOwner) {
-                throw new IllegalArgumentException("Bạn không có quyền chỉnh sửa thông tin này.");
-            }
-            
-            if (!existingSinhVien.getEmail().equals(updatedSinhVien.getEmail())) {
-                if (sinhVienRepository.existsByEmail(updatedSinhVien.getEmail())) {
-                    throw new IllegalArgumentException("Email này đã được sử dụng.");
-                }
-                existingSinhVien.setEmail(updatedSinhVien.getEmail());
-            }
-
-            existingSinhVien.setHoTen(updatedSinhVien.getHoTen());
-            existingSinhVien.setSoDienThoai(updatedSinhVien.getSoDienThoai());
-            existingSinhVien.setDiaChi(updatedSinhVien.getDiaChi());
-            existingSinhVien.setNganhHoc(updatedSinhVien.getNganhHoc());
-            existingSinhVien.setNamTotNghiep(updatedSinhVien.getNamTotNghiep());
-            existingSinhVien.setGioiThieu(updatedSinhVien.getGioiThieu());
-            existingSinhVien.setAvatar(updatedSinhVien.getAvatar());
-
-            return sinhVienRepository.save(existingSinhVien);
+        if (!isOwner && !isAdmin) {
+            throw new AccessDeniedException("Bạn không có quyền chỉnh sửa thông tin này.");
         }
-        throw new IllegalArgumentException("Sinh viên không tồn tại.");
+
+        // 3. Nếu đổi email, kiểm tra trùng lặp
+        String newEmail = updatedSinhVien.getEmail();
+        if (newEmail != null && !newEmail.equals(existingSinhVien.getEmail())) {
+            if (sinhVienRepository.existsByEmail(newEmail)) {
+                throw new IllegalArgumentException("Email này đã được sử dụng.");
+            }
+            existingSinhVien.setEmail(newEmail);
+        }
+
+        // 4. Cập nhật các trường khác
+        existingSinhVien.setHoTen(updatedSinhVien.getHoTen());
+        existingSinhVien.setSoDienThoai(updatedSinhVien.getSoDienThoai());
+        existingSinhVien.setDiaChi(updatedSinhVien.getDiaChi());
+        existingSinhVien.setNgaySinh(updatedSinhVien.getNgaySinh());
+        existingSinhVien.setNganhHoc(updatedSinhVien.getNganhHoc());
+        existingSinhVien.setNamTotNghiep(updatedSinhVien.getNamTotNghiep());
+        existingSinhVien.setGioiThieu(updatedSinhVien.getGioiThieu());
+
+        // 5. Lưu và trả về
+        return sinhVienRepository.save(existingSinhVien);
     }
 
     // 4. Xem tất cả bài viết hướng nghiệp do admin viết
@@ -283,4 +296,9 @@ public class SinhVienService {
     public List<DonUngTuyen> getDonUngTuyenBySinhVien(int sinhVienId) {
         return donUngTuyenRepository.findBySinhVien_IdSinhVien(sinhVienId);
     }
+    
+    //---------
+    
 }
+
+
