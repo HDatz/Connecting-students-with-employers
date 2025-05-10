@@ -111,8 +111,6 @@ public class SinhVienService {
         existingSinhVien.setSoDienThoai(updatedSinhVien.getSoDienThoai());
         existingSinhVien.setDiaChi(updatedSinhVien.getDiaChi());
         existingSinhVien.setNgaySinh(updatedSinhVien.getNgaySinh());
-        existingSinhVien.setNganhHoc(updatedSinhVien.getNganhHoc());
-        existingSinhVien.setNamTotNghiep(updatedSinhVien.getNamTotNghiep());
         existingSinhVien.setGioiThieu(updatedSinhVien.getGioiThieu());
 
         // 5. Lưu và trả về

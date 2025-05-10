@@ -56,7 +56,7 @@ public class NhaTuyenDung {
     @Column(name = "trang_web")
     private String trangWeb;
 
-    @Column(name = "mo_ta_cong_ty")
+    @Column(name = "mo_ta_cong_ty", columnDefinition = "TEXT")
     private String moTaCongTy;
 
     @Column(name = "avatar")

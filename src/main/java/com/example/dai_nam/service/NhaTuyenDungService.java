@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +16,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -55,6 +57,11 @@ public class NhaTuyenDungService {
     public Optional<NhaTuyenDung> findByEmail(String email) {
         return nhaTuyenDungRepository.findByEmail(email);
     }
+    
+    public NhaTuyenDung xemThongTinCongTy(String email) {
+        return nhaTuyenDungRepository.findByEmail(email)
+            .orElseThrow(() -> new UsernameNotFoundException("Không tìm nhà tuyển dung với email: " + email));
+    }
 
     // 1. Cập nhật thông tin nhà tuyển dụng (chỉ sửa tài khoản của mình)
     @Transactional
@@ -65,49 +72,36 @@ public class NhaTuyenDungService {
             throw new IllegalArgumentException("Nhà tuyển dụng không tồn tại.");
         }
 
-        NhaTuyenDung existingNhaTuyenDung = optionalNhaTuyenDung.get();
+        NhaTuyenDung existing = optionalNhaTuyenDung.get();
 
-        // Kiểm tra quyền
-        boolean isAdmin = quanTriVienRepository.existsById(idNguoiCapNhat);
-        boolean isOwner = existingNhaTuyenDung.getIdNhaTuyenDung().equals(idNguoiCapNhat);
-
-        if (!isAdmin && !isOwner) {
+        // Chỉ cho phép sửa thông tin cá nhân của chính mình
+        if (!existing.getIdNhaTuyenDung().equals(idNguoiCapNhat)) {
             throw new IllegalArgumentException("Bạn không có quyền chỉnh sửa thông tin này.");
         }
 
-        // Cập nhật mật khẩu nếu có
+        // Cập nhật các trường được phép
+        if (updatedNhaTuyenDung.getSoDienThoai() != null) {
+            existing.setSoDienThoai(updatedNhaTuyenDung.getSoDienThoai());
+        }
+        if (updatedNhaTuyenDung.getDiaChi() != null) {
+            existing.setDiaChi(updatedNhaTuyenDung.getDiaChi());
+        }
+        if (updatedNhaTuyenDung.getTrangWeb() != null) {
+            existing.setTrangWeb(updatedNhaTuyenDung.getTrangWeb());
+        }
+        if (updatedNhaTuyenDung.getMoTaCongTy() != null) {
+            existing.setMoTaCongTy(updatedNhaTuyenDung.getMoTaCongTy());
+        }
+
+        // Chỉ cập nhật mật khẩu nếu có
         String newPassword = updatedNhaTuyenDung.getMatKhau();
         if (newPassword != null && !newPassword.isEmpty()) {
-            existingNhaTuyenDung.setMatKhau(bCryptPasswordEncoder.encode(newPassword));
+            existing.setMatKhau(bCryptPasswordEncoder.encode(newPassword));
         }
 
-        // Kiểm tra và cập nhật email nếu thay đổi
-        String newEmail = updatedNhaTuyenDung.getEmail();
-        if (newEmail != null && !newEmail.equals(existingNhaTuyenDung.getEmail())) {
-
-            if (nhaTuyenDungRepository.existsByEmail(newEmail)) {
-                throw new IllegalArgumentException("Email đã tồn tại trong danh sách nhà tuyển dụng.");
-            }
-
-            if (sinhVienRepository.existsByEmail(newEmail)) {
-                throw new IllegalArgumentException("Email đã tồn tại trong danh sách sinh viên.");
-            }
-
-            if (quanTriVienRepository.existsByEmail(newEmail)) {
-                throw new IllegalArgumentException("Email đã tồn tại trong danh sách quản trị viên.");
-            }
-
-            existingNhaTuyenDung.setEmail(newEmail);
-        }
-
-        // Cập nhật các trường còn lại
-        existingNhaTuyenDung.setTenCongTy(updatedNhaTuyenDung.getTenCongTy());
-        existingNhaTuyenDung.setMoTaCongTy(updatedNhaTuyenDung.getMoTaCongTy());
-        existingNhaTuyenDung.setDiaChi(updatedNhaTuyenDung.getDiaChi());
-        existingNhaTuyenDung.setTrangWeb(updatedNhaTuyenDung.getTrangWeb());
-
-        return nhaTuyenDungRepository.save(existingNhaTuyenDung);
+        return nhaTuyenDungRepository.save(existing);
     }
+
 
 
     // 2. Nhà tuyển dụng tạo bài đăng tuyển dụng (Chờ duyệt)
@@ -131,50 +125,101 @@ public class NhaTuyenDungService {
 
     
     // 3. Nhà tuyển dụng cập nhật bài đăng tuyển dụng
+    @Transactional
     public BaiDangTuyenDung updateBaiDangTuyenDung(int idBaiDang, int idNguoiCapNhat, BaiDangTuyenDung updatedBaiDang) {
-        Optional<BaiDangTuyenDung> optionalBaiDang = baiDangTuyenDungRepository.findById(idBaiDang);
-        if (optionalBaiDang.isEmpty()) {
-            throw new IllegalArgumentException("Không tìm thấy bài đăng tuyển dụng!");
-        }
+        BaiDangTuyenDung baiDang = baiDangTuyenDungRepository.findById(idBaiDang)
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bài đăng tuyển dụng!"));
 
-        BaiDangTuyenDung baiDang = optionalBaiDang.get();
+        // 1) Kiểm tra quyền: admin hoặc chủ bài đăng
         boolean isAdmin = quanTriVienRepository.existsById(idNguoiCapNhat);
         boolean isOwner = baiDang.getNhaTuyenDung().getIdNhaTuyenDung().equals(idNguoiCapNhat);
-
         if (!isAdmin && !isOwner) {
             throw new IllegalArgumentException("Bạn không có quyền chỉnh sửa bài đăng này!");
         }
 
-        baiDang.setTieuDe(updatedBaiDang.getTieuDe());
-        baiDang.setMoTa(updatedBaiDang.getMoTa());
-        baiDang.setYeuCau(updatedBaiDang.getYeuCau());
-        baiDang.setMucLuong(updatedBaiDang.getMucLuong());
-        baiDang.setDiaDiem(updatedBaiDang.getDiaDiem());
+        // 2) Nếu đã có ứng viên ứng tuyển thì không cho sửa
+        boolean hasApplicants = donUngTuyenRepository.existsByBaiDangTuyenDung_IdBaiDang(idBaiDang);
+        if (hasApplicants) {
+            throw new IllegalStateException(
+                "Bài đăng đã có ứng viên ứng tuyển, không thể chỉnh sửa."
+            );
+        }
+
+        // 3) So sánh và cập nhật các trường
+        boolean changed = false;
+        if (!Objects.equals(baiDang.getTieuDe(), updatedBaiDang.getTieuDe())) {
+            baiDang.setTieuDe(updatedBaiDang.getTieuDe());
+            changed = true;
+        }
+        if (!Objects.equals(baiDang.getMoTa(), updatedBaiDang.getMoTa())) {
+            baiDang.setMoTa(updatedBaiDang.getMoTa());
+            changed = true;
+        }
+        if (!Objects.equals(baiDang.getYeuCau(), updatedBaiDang.getYeuCau())) {
+            baiDang.setYeuCau(updatedBaiDang.getYeuCau());
+            changed = true;
+        }
+        if (!Objects.equals(baiDang.getMucLuong(), updatedBaiDang.getMucLuong())) {
+            baiDang.setMucLuong(updatedBaiDang.getMucLuong());
+            changed = true;
+        }
+        if (!Objects.equals(baiDang.getDiaDiem(), updatedBaiDang.getDiaDiem())) {
+            baiDang.setDiaDiem(updatedBaiDang.getDiaDiem());
+            changed = true;
+        }
+
+        // Kiểm tra và cập nhật các trường bổ sung
+        if (!Objects.equals(baiDang.getLoaiCongViec(), updatedBaiDang.getLoaiCongViec())) {
+            baiDang.setLoaiCongViec(updatedBaiDang.getLoaiCongViec());
+            changed = true;
+        }
+        if (baiDang.getSoLuongTuyen() != updatedBaiDang.getSoLuongTuyen()) {
+            baiDang.setSoLuongTuyen(updatedBaiDang.getSoLuongTuyen());
+            changed = true;
+        }
+        if (!Objects.equals(baiDang.getHanNop(), updatedBaiDang.getHanNop())) {
+            baiDang.setHanNop(updatedBaiDang.getHanNop());
+            changed = true;
+        }
+        if (updatedBaiDang.getBanner() != null && !updatedBaiDang.getBanner().isEmpty()) {
+            baiDang.setBanner(updatedBaiDang.getBanner());
+            changed = true;
+        }
+        // Nếu có thay đổi, chuyển trạng thái về "CHO_DUYET"
+        if (changed) {
+            baiDang.setTrangThai(BaiDangTuyenDung.TrangThaiBaiDang.CHO_DUYET);
+        }
 
         return baiDangTuyenDungRepository.save(baiDang);
     }
 
 
+
+
     // 4. Xóa bài đăng tuyển dụng
     @Transactional
     public void deleteBaiDangTuyenDung(int idBaiDang, int idNguoiXoa) {
-        Optional<BaiDangTuyenDung> optionalBaiDang = baiDangTuyenDungRepository.findById(idBaiDang);
+        BaiDangTuyenDung baiDang = baiDangTuyenDungRepository.findById(idBaiDang)
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bài đăng tuyển dụng!"));
 
-        if (optionalBaiDang.isPresent()) {
-            BaiDangTuyenDung baiDang = optionalBaiDang.get();
-
-            boolean isAdmin = quanTriVienRepository.existsById(idNguoiXoa);
-            boolean isOwner = baiDang.getNhaTuyenDung().getIdNhaTuyenDung().equals(idNguoiXoa);
-
-            if (!isAdmin && !isOwner) {
-                throw new IllegalArgumentException("Bạn không có quyền xóa bài đăng này!");
-            }
-
-            baiDangTuyenDungRepository.deleteById(idBaiDang);
-        } else {
-            throw new IllegalArgumentException("Không tìm thấy bài đăng tuyển dụng!");
+        boolean isAdmin = quanTriVienRepository.existsById(idNguoiXoa);
+        boolean isOwner = baiDang.getNhaTuyenDung().getIdNhaTuyenDung().equals(idNguoiXoa);
+        if (!isAdmin && !isOwner) {
+            throw new IllegalArgumentException("Bạn không có quyền xóa bài đăng này!");
         }
+        
+        // Kiểm tra điều kiện: chỉ xóa nếu CHỜ DUYỆT hoặc chưa có ứng viên
+        boolean isChoDuyet = baiDang.getTrangThai() == BaiDangTuyenDung.TrangThaiBaiDang.CHO_DUYET;
+        boolean hasNoApplicants = !donUngTuyenRepository.existsByBaiDangTuyenDung_IdBaiDang(idBaiDang);
+        
+        if (!isChoDuyet && !hasNoApplicants) {
+            throw new IllegalStateException("Chỉ có thể xóa bài đăng chưa duyệt hoặc chưa có ứng viên ứng tuyển.");
+        }
+
+        // Nếu thỏa điều kiện thì xóa
+        baiDangTuyenDungRepository.deleteById(idBaiDang);
     }
+
 
 
     // 5. Nhà tuyển dụng xem danh sách bài đăng của mình
@@ -216,16 +261,16 @@ public class NhaTuyenDungService {
             body.append("Rất tiếc, bạn đã KHÔNG được chọn cho vị trí sau:\n");
         }
         // Thông tin vị trí
-        body.append("• Tiêu đề: ").append(baiDang.getTieuDe()).append("\n")
-            .append("• Mức lương: ").append(baiDang.getMucLuong()).append("\n")
-            .append("• Địa điểm: ").append(baiDang.getDiaDiem()).append("\n")
-            .append("• Loại công việc: ").append(baiDang.getLoaiCongViec()).append("\n\n");
+        body.append("Tiêu đề: ").append(baiDang.getTieuDe()).append("\n")
+            .append("Mức lương: ").append(baiDang.getMucLuong()).append("\n")
+            .append("Địa điểm: ").append(baiDang.getDiaDiem()).append("\n")
+            .append("Loại công việc: ").append(baiDang.getLoaiCongViec()).append("\n\n");
         // Thông tin nhà tuyển dụng
         body.append("Thông tin nhà tuyển dụng:\n")
-            .append("• Tên công ty: ").append(ntv.getTenCongTy()).append("\n")
-            .append("• Email: ").append(ntv.getEmail()).append("\n")
-            .append("• SĐT: ").append(ntv.getSoDienThoai()).append("\n")
-            .append("• Địa chỉ: ").append(ntv.getDiaChi()).append("\n\n");
+            .append("Tên công ty: ").append(ntv.getTenCongTy()).append("\n")
+            .append("Email: ").append(ntv.getEmail()).append("\n")
+            .append("SĐT: ").append(ntv.getSoDienThoai()).append("\n")
+            .append("Địa chỉ: ").append(ntv.getDiaChi()).append("\n\n");
         // Lời kết
         if (chapNhan) {
             body.append("Hẹn gặp bạn trong buổi phỏng vấn hoặc ngày nhận việc sắp tới!\n");
@@ -294,5 +339,19 @@ public class NhaTuyenDungService {
 
     public BaiVietHuongNghiep getBaiVietById(Integer id) {
         return baiVietHuongNghiepRepository.findById(id).orElse(null);
+    }
+    
+    public BaiDangTuyenDung getChiTietBaiDang(int idBaiDang, int idNguoiXem) {
+        BaiDangTuyenDung baiDang = baiDangTuyenDungRepository.findById(idBaiDang)
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bài đăng với ID: " + idBaiDang));
+
+        // Kiểm tra quyền: admin hoặc chủ bài đăng
+        boolean isAdmin = quanTriVienRepository.existsById(idNguoiXem);
+        boolean isOwner = baiDang.getNhaTuyenDung().getIdNhaTuyenDung().equals(idNguoiXem);
+        if (!isAdmin && !isOwner) {
+            throw new AccessDeniedException("Bạn không có quyền xem bài đăng này");
+        }
+
+        return baiDang;
     }
 }

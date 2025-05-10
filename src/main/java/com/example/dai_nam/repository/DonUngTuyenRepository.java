@@ -15,4 +15,7 @@ public interface DonUngTuyenRepository extends JpaRepository<DonUngTuyen, Intege
 
  // Lấy tất cả đơn ứng tuyển của 1 sinh viên
 	List<DonUngTuyen> findBySinhVien_IdSinhVien(Integer sinhVienId);
+	
+	boolean existsByBaiDangTuyenDung_IdBaiDang(int baiDangId);
+
 }
