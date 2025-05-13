@@ -51,6 +51,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/nha-tuyen-dung/cv/**").permitAll()
                 .requestMatchers("/api/QuanTriVien/**").hasAuthority("ROLE_QUANTRIVIEN")
                 .requestMatchers("/api/nha-tuyen-dung/**").hasAuthority("ROLE_NHATUYENDUNG")
+                .requestMatchers("/api/thongbao").authenticated()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // 

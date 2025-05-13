@@ -22,8 +22,7 @@ import java.util.Optional;
 @Service
 public class NhaTuyenDungService {
 	
-	@Autowired
-	private SinhVienRepository sinhVienRepository;
+
 	
     @Autowired
     private NhaTuyenDungRepository nhaTuyenDungRepository;

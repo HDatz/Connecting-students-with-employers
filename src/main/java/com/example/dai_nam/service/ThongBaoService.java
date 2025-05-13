@@ -4,6 +4,7 @@ import com.example.dai_nam.model.ThongBao;
 import com.example.dai_nam.repository.ThongBaoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -38,5 +39,12 @@ public class ThongBaoService {
             return thongbaoRepository.save(thongbao);
         }
         return null;
+    }
+    
+    @Transactional
+    public void markAllReadByNguoiNhan(Integer idNguoiNhan) {
+        List<ThongBao> list = thongbaoRepository.findByIdNguoiNhanAndDaXemFalse(idNguoiNhan);
+        list.forEach(tb -> tb.setDaXem(true));
+        thongbaoRepository.saveAll(list);
     }
 }
