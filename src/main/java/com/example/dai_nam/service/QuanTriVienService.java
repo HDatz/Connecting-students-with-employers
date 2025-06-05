@@ -3,6 +3,8 @@ package com.example.dai_nam.service;
 import com.example.dai_nam.model.*;
 import com.example.dai_nam.model.BaiDangTuyenDung.TrangThaiBaiDang;
 import com.example.dai_nam.repository.*;
+
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
@@ -101,10 +103,6 @@ public class QuanTriVienService {
         existingNhaTuyenDung.setTrangWeb(nhaTuyenDung.getTrangWeb());
         existingNhaTuyenDung.setMoTaCongTy(nhaTuyenDung.getMoTaCongTy());
 
-        // Nếu có thay đổi mật khẩu, mã hóa lại
-        if (nhaTuyenDung.getMatKhau() != null && !nhaTuyenDung.getMatKhau().isEmpty()) {
-            existingNhaTuyenDung.setMatKhau(bCryptPasswordEncoder.encode(nhaTuyenDung.getMatKhau()));
-        }
         if(nhaTuyenDung.getAvatar() != null && !nhaTuyenDung.getAvatar().isEmpty()) {
         	existingNhaTuyenDung.setAvatar(nhaTuyenDung.getAvatar());        }
 
@@ -225,6 +223,11 @@ public class QuanTriVienService {
         return baiVietHuongNghiepRepository.findAll();
     }
     
+    public BaiVietHuongNghiep getBaiVietById(Integer id) {
+        return baiVietHuongNghiepRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Bài viết không tồn tại"));
+    }
+    
     @Transactional
     public BaiVietHuongNghiep addBaiViet(BaiVietHuongNghiep baiViet) {
         // Kiểm tra người dùng có đăng nhập không
@@ -252,16 +255,29 @@ public class QuanTriVienService {
     //cập nhật bài viết hướng nghiệp 
     @Transactional
     public BaiVietHuongNghiep updateBaiViet(Integer id, BaiVietHuongNghiep updatedBaiViet) {
-        Optional<BaiVietHuongNghiep> optionalBaiViet = baiVietHuongNghiepRepository.findById(id);
-        if (optionalBaiViet.isPresent()) {
-            BaiVietHuongNghiep baiViet = optionalBaiViet.get();
-            baiViet.setTieuDe(updatedBaiViet.getTieuDe());
-            baiViet.setNoiDung(updatedBaiViet.getNoiDung());
-            return baiVietHuongNghiepRepository.save(baiViet);
-        } else {
-            throw new IllegalArgumentException("Bài viết không tồn tại");
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal().equals("anonymousUser")) {
+            throw new IllegalArgumentException("Người dùng chưa đăng nhập!");
         }
+
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        String email = userDetails.getUsername();
+
+        QuanTriVien quanTriVien = quanTriVienRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không hợp lệ!"));
+
+        BaiVietHuongNghiep baiViet = baiVietHuongNghiepRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Bài viết không tồn tại"));
+
+        if (baiViet.getTacGia().getIdQuanTri() != quanTriVien.getIdQuanTri()) {
+            throw new SecurityException("Bạn không có quyền cập nhật bài viết này!");
+        }
+
+        baiViet.setTieuDe(updatedBaiViet.getTieuDe());
+        baiViet.setNoiDung(updatedBaiViet.getNoiDung());
+        return baiVietHuongNghiepRepository.save(baiViet);
     }
+
 
 
     // # Quản lý bài viết hướng nghiệp: Xóa bài viết hướng nghiệp
@@ -274,6 +290,11 @@ public class QuanTriVienService {
     
     public List<BaiDangTuyenDung> getAllBaiDang() {
         return baiDangTuyenDungRepository.findAll();
+    }
+    
+    public BaiDangTuyenDung getChiTietBaiDang(Integer id) {
+        return baiDangTuyenDungRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bài đăng tuyển dụng!"));
     }
     
     public List<BaiDangTuyenDung> getBaiDangByTrangThai(TrangThaiBaiDang trangThai) {

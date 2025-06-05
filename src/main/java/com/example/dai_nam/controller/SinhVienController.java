@@ -43,6 +43,8 @@ import com.example.dai_nam.service.SinhVienService;
 @RequestMapping("/api/SinhVien")
 public class SinhVienController {
 	
+	
+	
 	 @Autowired
 	 private SinhVienRepository sinhVienRepository;
 

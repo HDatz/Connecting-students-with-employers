@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.Authentication;
 import org.springframework.core.io.Resource;
@@ -38,7 +39,7 @@ public class QuanTriVienController {
     @Autowired
     private QuanTriVienService quanTriVienService;
     
-
+    private final Path uploadPath = Paths.get("uploads/banner");
     
 
     // ========================== Sinh Viên ==========================
@@ -305,6 +306,11 @@ public class QuanTriVienController {
         return ResponseEntity.ok(quanTriVienService.getAllBaiViet());
     }
 
+    @GetMapping("/BaiViet/{id}")
+    public ResponseEntity<BaiVietHuongNghiep> getChiTietBaiViet(@PathVariable Integer id) {
+        BaiVietHuongNghiep bv = quanTriVienService.getBaiVietById(id);
+        return ResponseEntity.ok(bv);
+    }
     
     @PostMapping("/BaiViet")
     public ResponseEntity<BaiVietHuongNghiep> addBaiViet(@RequestBody BaiVietHuongNghiep baiViet) {
@@ -360,6 +366,65 @@ public class QuanTriVienController {
 
         return ResponseEntity.ok(response);
     }
+    
+    @GetMapping("/BaiDang/{id}")
+    public ResponseEntity<Map<String, Object>> getChiTietBaiDang(@PathVariable Integer id) {
+        BaiDangTuyenDung baiDang = quanTriVienService.getChiTietBaiDang(id);
+
+        // Xây dựng URL banner dựa trên endpoint /banners/{filename}
+        String bannerFilename = baiDang.getBanner(); 
+        String bannerUrl = ServletUriComponentsBuilder
+            .fromCurrentContextPath()
+            .path("/api/QuanTriVien/banners/")
+            .path(bannerFilename)
+            .toUriString();
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("idBaiDang", baiDang.getIdBaiDang());
+        map.put("tieuDe", baiDang.getTieuDe());
+        map.put("moTa", baiDang.getMoTa());
+        map.put("diaDiem", baiDang.getDiaDiem());
+        map.put("loaiCongViec", baiDang.getLoaiCongViec());
+        map.put("mucLuong", baiDang.getMucLuong());
+        map.put("yeuCau", baiDang.getYeuCau());
+        map.put("ngayDang", baiDang.getNgayDang());
+        map.put("hanNop", baiDang.getHanNop());
+        map.put("trangThai", baiDang.getTrangThai());
+        map.put("soLuongTuyen", baiDang.getSoLuongTuyen());
+
+        // Đưa URL banner thay vì chỉ filename
+        map.put("bannerUrl", bannerUrl);
+
+        if (baiDang.getNhaTuyenDung() != null) {
+            map.put("tenCongTy", baiDang.getNhaTuyenDung().getTenCongTy());
+            map.put("email", baiDang.getNhaTuyenDung().getEmail());
+            map.put("sdt", baiDang.getNhaTuyenDung().getSoDienThoai());
+            map.put("diaChi", baiDang.getNhaTuyenDung().getDiaChi());
+        } else {
+            map.put("tenCongTy", "Không rõ");
+        }
+
+        return ResponseEntity.ok(map);
+    }
+    
+    @GetMapping("/banners/{filename:.+}")
+    public ResponseEntity<Resource> getBanner(@PathVariable String filename) {
+        try {
+            Path file = uploadPath.resolve(filename);
+            Resource resource = new UrlResource(file.toUri());
+            if (resource.exists() || resource.isReadable()) {
+                String contentType = Files.probeContentType(file);
+                return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .body(resource);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     
     // Lay danh sách bài đăng chờ duyệt
     @GetMapping("/BaiDang/choduyet")

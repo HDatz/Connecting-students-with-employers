@@ -77,6 +77,9 @@ public class NhaTuyenDungService {
         if (!existing.getIdNhaTuyenDung().equals(idNguoiCapNhat)) {
             throw new IllegalArgumentException("Bạn không có quyền chỉnh sửa thông tin này.");
         }
+        if (updatedNhaTuyenDung.getTenCongTy() != null) {
+            existing.setTenCongTy(updatedNhaTuyenDung.getTenCongTy());
+        }
 
         // Cập nhật các trường được phép
         if (updatedNhaTuyenDung.getSoDienThoai() != null) {
